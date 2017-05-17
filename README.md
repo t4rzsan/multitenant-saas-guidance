@@ -1,9 +1,3 @@
----
-services: guidance
-platforms: dotnet
-author: MikeWasson
----
-
 # Identity Management for Multitenant Applications in Microsoft Azure
 
 This sample shows how to manage user identities in a multitenant application on Microsoft Azure, using Azure Active Directory for authentication.
@@ -15,8 +9,5 @@ The project consists of:
 
 This project has adopted the [Microsoft Open Source Code of Conduct](https://opensource.microsoft.com/codeofconduct/). For more information see the [Code of Conduct FAQ](https://opensource.microsoft.com/codeofconduct/faq/) or contact [opencode@microsoft.com](mailto:opencode@microsoft.com) with any additional questions or comments.
 
-[get-started]: ./docs/running-the-app.md
+[get-started]: https://docs.microsoft.com/azure/architecture/multitenant-identity/running-the-app
 [guidance]: https://docs.microsoft.com/azure/architecture/multitenant-identity/
-
-
-
