@@ -43,21 +43,19 @@ namespace Tailspin.Surveys.Web
             {
                 // This reads the configuration keys from the secret store.
                 // For more details on using the user secret store see http://go.microsoft.com/fwlink/?LinkID=532709
-                builder.AddUserSecrets();
+                builder.AddUserSecrets<Startup>();
             }
 
             builder.AddEnvironmentVariables();
 
             // Uncomment the block of code below if you want to load secrets from KeyVault
             // It is recommended to use certs for all authentication when using KeyVault
-//#if NET451
-//            Configuration = builder.Build();
-//            builder.AddKeyVaultSecrets(Configuration["AzureAd:ClientId"],
-//                Configuration["KeyVault:Name"],
-//                Configuration["AzureAd:Asymmetric:CertificateThumbprint"],
-//                Convert.ToBoolean(Configuration["AzureAd:Asymmetric:ValidationRequired"]),
-//                loggerFactory);
-//#endif
+            //var config = builder.Build();
+            //builder.AddAzureKeyVault(
+            //    $"https://{config["KeyVault:Name"]}.vault.azure.net/",
+            //    config["AzureAd:ClientId"],
+            //    config["AzureAd:ClientSecret"]);
+
             Configuration = builder.Build();
         }
 
@@ -68,7 +66,6 @@ namespace Tailspin.Surveys.Web
         {
             services.Configure<SurveyAppConfiguration.ConfigurationOptions>(options => Configuration.Bind(options));
 
-#if NET451
             var configOptions = new SurveyAppConfiguration.ConfigurationOptions();
             Configuration.Bind(configOptions);
 
@@ -76,7 +73,6 @@ namespace Tailspin.Surveys.Web
             services.AddDistributedRedisCache(setup => {
                 setup.Configuration = configOptions.Redis.Configuration;
             });
-#endif
 
             // This will only add the LocalCache implementation of IDistributedCache if there is not an IDistributedCache already registered.
             services.AddMemoryCache();
@@ -114,10 +110,6 @@ namespace Tailspin.Surveys.Web
             // Add MVC services to the services container.
             services.AddMvc();
 
-            // Uncomment the following line to add Web API services which makes it easier to port Web API 2 controllers.
-            // You will also need to add the Microsoft.AspNetCore.Mvc.WebApiCompatShim package to the 'dependencies' section of project.json.
-            // services.AddWebApiConventions();
-
             // Register application services.
 
             // This will register IDistributedCache based token cache which ADAL will use for caching access tokens.
@@ -126,8 +118,12 @@ namespace Tailspin.Surveys.Web
             services.AddScoped<ISurveysTokenService, SurveysTokenService>();
             services.AddSingleton<HttpClientService>();
 
-            // Use this for client certificate support
+            // Uncomment the following line to use client certificate credentials.
+            //services.AddSingleton<ICredentialService, CertificateCredentialService>();
+
+            // Comment out the following line if you are using client certificates.
             services.AddSingleton<ICredentialService, ClientCredentialService>();
+
             services.AddScoped<ISurveyService, SurveyService>();
             services.AddScoped<IQuestionService, QuestionService>();
             services.AddScoped<SignInManager, SignInManager>();
@@ -165,7 +161,7 @@ namespace Tailspin.Surveys.Web
                 AutomaticAuthenticate = true,
                 AutomaticChallenge = true,
                 AccessDeniedPath = "/Home/Forbidden",
-                CookieSecure = Microsoft.AspNetCore.Http.CookieSecurePolicy.Always,
+                CookieSecure = CookieSecurePolicy.Always,
 
                 // The default setting for cookie expiration is 14 days. SlidingExpiration is set to true by default
                 ExpireTimeSpan = TimeSpan.FromHours(1),

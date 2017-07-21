@@ -10,7 +10,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using System.Globalization;
+using Microsoft.IdentityModel.Tokens;
 using Tailspin.Surveys.Data.DataModels;
 using Tailspin.Surveys.Data.DataStore;
 using Tailspin.Surveys.Security.Policy;
@@ -35,20 +35,9 @@ namespace Tailspin.Surveys.WebAPI
             {
                 // This reads the configuration keys from the secret store.
                 // For more details on using the user secret store see http://go.microsoft.com/fwlink/?LinkID=532709
-                builder.AddUserSecrets();
+                builder.AddUserSecrets<Startup>();
             }
             builder.AddEnvironmentVariables();
-
-            // Uncomment the block of code below if you want to load secrets from KeyVault
-            // It is recommended to use certs for all authentication when using KeyVault
-//#if NET451
-//            var config = builder.Build();
-//            builder.AddKeyVaultSecrets(config["AzureAd:ClientId"],
-//                config["KeyVault:Name"],
-//                config["AzureAd:Asymmetric:CertificateThumbprint"],
-//                Convert.ToBoolean(config["AzureAd:Asymmetric:ValidationRequired"]),
-//                loggerFactory);
-//#endif
 
             Configuration = builder.Build();
         }
@@ -117,7 +106,7 @@ namespace Tailspin.Surveys.WebAPI
             app.UseJwtBearerAuthentication(new JwtBearerOptions {
                 Audience = configOptions.AzureAd.WebApiResourceId,
                 Authority = Constants.AuthEndpointPrefix,
-                TokenValidationParameters = new Microsoft.IdentityModel.Tokens.TokenValidationParameters {
+                TokenValidationParameters = new TokenValidationParameters {
                     ValidateIssuer = false
                 },
                 Events= new SurveysJwtBearerEvents(loggerFactory.CreateLogger<SurveysJwtBearerEvents>())

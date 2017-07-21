@@ -19,6 +19,7 @@ using System.Security;
 using Microsoft.AspNetCore.Http.Extensions;
 using Microsoft.IdentityModel.Clients.ActiveDirectory;
 using System.Globalization;
+using Microsoft.IdentityModel.Tokens;
 
 namespace Tailspin.Surveys.Web.Security
 {
@@ -221,11 +222,7 @@ namespace Tailspin.Surveys.Web.Security
                 if (tenant == null)
                 {
                     _logger.UnregisteredUserSignInAttempted(userId, issuerValue);
-#if NET451
                     throw new SecurityTokenValidationException($"Tenant {issuerValue} is not registered");
-#else
-                    throw new SecurityException($"Tenant {issuerValue} is not registered");
-#endif
                 }
 
                 await CreateOrUpdateUserAsync(context.Ticket, userManager, tenant)
