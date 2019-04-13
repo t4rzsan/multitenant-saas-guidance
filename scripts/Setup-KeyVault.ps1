@@ -16,6 +16,7 @@
 
 [parameter(Mandatory=$true, ParameterSetName="SetAccessPolicy")]
 [parameter(Mandatory=$true, ParameterSetName="CreateKeyVault")]
+[parameter(Mandatory=$true, ParameterSetName="SetConfigValue")]
 [string]$SubscriptionId,
 
 [parameter(Mandatory=$true, ParameterSetName="SetAccessPolicy")]
