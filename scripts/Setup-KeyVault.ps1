@@ -14,7 +14,14 @@
 [parameter(Mandatory=$false, ParameterSetName="GenerateCertificate")]
 [ValidateScript({if ($_){ Test-Path $_ -PathType Container }})][string]$OutputPath,
 
+[parameter(Mandatory=$true, ParameterSetName="SetAccessPolicy")]
 [parameter(Mandatory=$true, ParameterSetName="CreateKeyVault")]
+[parameter(Mandatory=$true, ParameterSetName="SetConfigValue")]
+[string]$SubscriptionId,
+
+[parameter(Mandatory=$true, ParameterSetName="SetAccessPolicy")]
+[parameter(Mandatory=$true, ParameterSetName="CreateKeyVault")]
+[parameter(Mandatory=$true, ParameterSetName="SetConfigValue")]
 [string]$ResourceGroupName,
 
 [parameter(Mandatory=$true, ParameterSetName="CreateKeyVault")]
@@ -77,7 +84,7 @@ param(
 [parameter(Mandatory=$true, ValueFromPipeline=$true)]$ApplicationId
 )
     process {
-        Set-AzureRmKeyVaultAccessPolicy -VaultName $KeyVaultName -ServicePrincipalName $ApplicationId -PermissionsToSecrets get,list -ErrorAction Stop
+        Set-AzureRmKeyVaultAccessPolicy -VaultName $KeyVaultName -ResourceGroupName $ResourceGroupName -ServicePrincipalName $ApplicationId -PermissionsToSecrets get,list -ErrorAction Stop
     }
 }
 
@@ -113,12 +120,16 @@ switch($PSCmdlet.ParameterSetName)
     "CreateKeyVault"
     {
         Login-AzureRmAccount
+        Select-AzureRmSubscription -Subscription $SubscriptionId
+
         New-AzureRmResourceGroup –Name $ResourceGroupName –Location $Location -ErrorAction Stop
         New-AzureRmKeyVault -VaultName $KeyVaultName -ResourceGroupName $ResourceGroupName -Location $Location -ErrorAction Stop
     }
     "SetAccessPolicy"
     {
         Login-AzureRmAccount
+        Select-AzureRmSubscription -Subscription $SubscriptionId
+
         # Set the access policy for the ApplicationIds
         $ApplicationIds.GetEnumerator() | Set-AccessPolicy
     }
@@ -130,6 +141,7 @@ switch($PSCmdlet.ParameterSetName)
         Validate-ValueParameter $KeyValueObject
         #Everything is good, so login to AzureRM
         Login-AzureRmAccount
+        Select-AzureRmSubscription -Subscription $SubscriptionId
         #Setup secrets
         Set-KeyVaultSecret $KeyValueObject
     }
