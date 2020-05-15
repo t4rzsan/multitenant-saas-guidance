@@ -46,7 +46,7 @@ namespace Tailspin.Surveys.WebAPI
         /// <returns>A task</returns>
         public override async Task TokenValidated(TokenValidatedContext context)
         {
-            var principal = context.Ticket.Principal;
+            var principal = context.Principal;
             var tenantManager = context.HttpContext.RequestServices.GetService<TenantManager>();
             var userManager = context.HttpContext.RequestServices.GetService<UserManager>();
             var issuerValue = principal.GetIssuerValue();

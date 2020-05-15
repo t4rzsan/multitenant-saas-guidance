@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System.Globalization;
+using System.Linq;
 using Tailspin.Surveys.Common;
 using Tailspin.Surveys.Security;
 
@@ -25,7 +26,21 @@ namespace System.Security.Claims
 
         public static string GetIssuerValue(this ClaimsPrincipal principal, bool throwIfNotFound = true)
         {
-            return principal.FindFirstValue(OpenIdConnectClaimTypes.IssuerValue, throwIfNotFound);
+
+            var issuerValue = principal.FindFirstValue(OpenIdConnectClaimTypes.IssuerValue, false);
+            if (issuerValue != null || !throwIfNotFound)
+            {
+                return issuerValue;
+            }
+            
+            //Workaround to deal with missing "iss" claim. We search for the ObjectId claim instead and return the value of Issuer property of that Claim
+            var objectIdClaim = principal.Claims.FirstOrDefault(c => c.Type == AzureADClaimTypes.ObjectId);
+            if (throwIfNotFound && string.IsNullOrWhiteSpace(objectIdClaim?.Issuer))
+            {
+                throw new InvalidOperationException(
+                    string.Format(CultureInfo.InvariantCulture, "The supplied principal does not contain a claim of type {0}", OpenIdConnectClaimTypes.IssuerValue));
+            }
+            return objectIdClaim.Issuer;
         }
 
         /// <summary>

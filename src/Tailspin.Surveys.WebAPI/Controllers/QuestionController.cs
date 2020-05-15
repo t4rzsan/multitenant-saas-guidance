@@ -17,7 +17,7 @@ namespace Tailspin.Surveys.WebAPI.Controllers
     /// This class provides a REST based API for the management of questions.
     /// This class uses Bearer token authentication and authorization.
     /// </summary>
-    [Authorize(ActiveAuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
     public class QuestionController : Controller
     {
         private readonly IQuestionStore _questionStore;
@@ -45,7 +45,7 @@ namespace Tailspin.Surveys.WebAPI.Controllers
                 return NotFound();
             }
 
-            if (!await _authorizationService.AuthorizeAsync(User, question.Survey, Operations.Update))
+            if (!(await _authorizationService.AuthorizeAsync(User, question.Survey, Operations.Update)).Succeeded)
             {
                 return StatusCode(403);
             }
@@ -86,7 +86,7 @@ namespace Tailspin.Surveys.WebAPI.Controllers
             }
 
             // The AuthorizationService uses the policies in the Tailspin.Surveys.Security project
-            if (!await _authorizationService.AuthorizeAsync(User, survey, Operations.Update))
+            if (!(await _authorizationService.AuthorizeAsync(User, survey, Operations.Update)).Succeeded)
             {
                 return StatusCode(403);
             }
@@ -120,7 +120,7 @@ namespace Tailspin.Surveys.WebAPI.Controllers
                 return NotFound();
             }
 
-            if (!await _authorizationService.AuthorizeAsync(User, question.Survey, Operations.Update))
+            if (!(await _authorizationService.AuthorizeAsync(User, question.Survey, Operations.Update)).Succeeded)
             {
                 return StatusCode(403);
             }
@@ -152,7 +152,7 @@ namespace Tailspin.Surveys.WebAPI.Controllers
                 return NotFound();
             }
 
-            if (!await _authorizationService.AuthorizeAsync(User, question.Survey, Operations.Update))
+            if (!(await _authorizationService.AuthorizeAsync(User, question.Survey, Operations.Update)).Succeeded)
             {
                 return StatusCode(403);
             }

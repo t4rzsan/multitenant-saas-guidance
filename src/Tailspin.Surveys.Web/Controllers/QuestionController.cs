@@ -11,7 +11,7 @@ using Tailspin.Surveys.Web.Services;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Tailspin.Surveys.Web.Models;
-using Microsoft.AspNetCore.Http.Authentication;
+using Microsoft.AspNetCore.Authentication;
 
 namespace Tailspin.Surveys.Web.Controllers
 {

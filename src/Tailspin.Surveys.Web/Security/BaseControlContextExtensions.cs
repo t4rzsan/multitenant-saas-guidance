@@ -2,13 +2,13 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System;
-using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Tailspin.Surveys.Common;
 
 namespace Tailspin.Surveys.Web.Security
 {
     /// <summary>
-    /// Extension methods for the ASP.NET BaseControlCOntext.
+    /// Extension methods for the ASP.NET RedirectContext.
     /// </summary>
     internal static class BaseControlContextExtensions
     {
@@ -17,14 +17,14 @@ namespace Tailspin.Surveys.Web.Security
         /// </summary>
         /// <param name="context">BaseControlContext from ASP.NET.</param>
         /// <returns>true if the user is signing up a tenant, otherwise, false.</returns>
-        internal static bool IsSigningUp(this BaseControlContext context)
+        internal static bool IsSigningUp(this RedirectContext context)
         {
             Guard.ArgumentNotNull(context, nameof(context));
 
-            string signupValue;
+            string signupValue= string.Empty;
             // Check the HTTP context and convert to string
-            if ((context.Ticket == null) ||
-                (!context.Ticket.Properties.Items.TryGetValue("signup", out signupValue)))
+            if ((context  == null) ||
+                (!context.Properties.Items.TryGetValue("signup", out signupValue)))
             {
                 return false;
             }
@@ -39,5 +39,29 @@ namespace Tailspin.Surveys.Web.Security
 
             return isSigningUp;
         }
+
+         internal static bool IsSigningUp(this TokenValidatedContext context)
+        {
+            Guard.ArgumentNotNull(context, nameof(context));
+
+            string signupValue = string.Empty;
+            // Check the HTTP context and convert to string
+            if ((context == null) ||
+                (!context.Properties.Items.TryGetValue("signup", out signupValue)))
+            {
+                return false;
+            }
+
+            // We have found the value, so see if it's valid
+            bool isSigningUp;
+            if (!bool.TryParse(signupValue, out isSigningUp))
+            {
+                // The value for signup is not a valid boolean, throw                
+                throw new InvalidOperationException($"'{signupValue}' is an invalid boolean value");
+            }
+
+            return isSigningUp;
+        }
+
     }
 }

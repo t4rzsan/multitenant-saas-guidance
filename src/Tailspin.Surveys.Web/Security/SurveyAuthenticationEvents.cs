@@ -15,11 +15,9 @@ using Tailspin.Surveys.Common.Configuration;
 using Tailspin.Surveys.Data.DataModels;
 using Tailspin.Surveys.Security;
 using Tailspin.Surveys.Web.Logging;
-using System.Security;
 using Microsoft.AspNetCore.Http.Extensions;
-using Microsoft.IdentityModel.Clients.ActiveDirectory;
-using System.Globalization;
 using Microsoft.IdentityModel.Tokens;
+
 
 namespace Tailspin.Surveys.Web.Security
 {
@@ -95,12 +93,12 @@ namespace Tailspin.Surveys.Web.Security
             }
         }
 
-        private async Task<Tenant> SignUpTenantAsync(BaseControlContext context, TenantManager tenantManager)
+        private async Task<Tenant> SignUpTenantAsync(TokenValidatedContext context, TenantManager tenantManager)
         {
             Guard.ArgumentNotNull(context, nameof(context));
             Guard.ArgumentNotNull(tenantManager, nameof(tenantManager));
 
-            var principal = context.Ticket.Principal;
+            var principal = context.Principal;
             var issuerValue = principal.GetIssuerValue();
             var tenant = new Tenant
             {
@@ -113,7 +111,7 @@ namespace Tailspin.Surveys.Web.Security
                 await tenantManager.CreateAsync(tenant)
                     .ConfigureAwait(false);
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 _logger.SignUpTenantFailed(principal.GetObjectIdentifierValue(), issuerValue, ex);
                 throw;
@@ -122,13 +120,11 @@ namespace Tailspin.Surveys.Web.Security
             return tenant;
         }
 
-        private async Task CreateOrUpdateUserAsync(AuthenticationTicket authenticationTicket, UserManager userManager, Tenant tenant)
+        private async Task CreateOrUpdateUserAsync(ClaimsPrincipal principal, UserManager userManager, Tenant tenant)
         {
-            Guard.ArgumentNotNull(authenticationTicket, nameof(authenticationTicket));
             Guard.ArgumentNotNull(userManager, nameof(userManager));
             Guard.ArgumentNotNull(tenant, nameof(tenant));
 
-            var principal = authenticationTicket.Principal;
             string objectIdentifier = principal.GetObjectIdentifierValue();
             string displayName = principal.GetDisplayNameValue();
             string email = principal.GetEmailValue();
@@ -190,11 +186,11 @@ namespace Tailspin.Surveys.Web.Security
         /// <returns>a completed <see cref="System.Threading.Tasks.Task"/></returns>
         public override async Task TokenValidated(TokenValidatedContext context)
         {
-            var principal = context.Ticket.Principal;
+            var principal = context.Principal;
             var userId = principal.GetObjectIdentifierValue();
             var tenantManager = context.HttpContext.RequestServices.GetService<TenantManager>();
             var userManager = context.HttpContext.RequestServices.GetService<UserManager>();
-            var issuerValue = principal.GetIssuerValue();
+            var issuerValue = context.SecurityToken.Issuer;
             _logger.AuthenticationValidated(userId, issuerValue);
 
             // Normalize the claims first.
@@ -214,7 +210,7 @@ namespace Tailspin.Surveys.Web.Security
                 }
 
                 // In this case, we need to go ahead and set up the user signing us up.
-                await CreateOrUpdateUserAsync(context.Ticket, userManager, tenant)
+                await CreateOrUpdateUserAsync(context.Principal, userManager, tenant)
                     .ConfigureAwait(false);
             }
             else
@@ -225,7 +221,7 @@ namespace Tailspin.Surveys.Web.Security
                     throw new SecurityTokenValidationException($"Tenant {issuerValue} is not registered");
                 }
 
-                await CreateOrUpdateUserAsync(context.Ticket, userManager, tenant)
+                await CreateOrUpdateUserAsync(context.Principal, userManager, tenant)
                     .ConfigureAwait(false);
             }
         }
@@ -243,24 +239,23 @@ namespace Tailspin.Surveys.Web.Security
 
         public override async Task AuthorizationCodeReceived(AuthorizationCodeReceivedContext context)
         {
-            var principal = context.Ticket.Principal;
+            var principal = context.Principal;
 
-            //
             var request = context.HttpContext.Request;
             var currentUri = UriHelper.BuildAbsolute(request.Scheme, request.Host, request.PathBase, request.Path);
             var properties = context.Properties;
 
-            //
-
             var surveysTokenService = context.HttpContext.RequestServices.GetService<ISurveysTokenService>();
             try
             {
-                await surveysTokenService.RequestTokenAsync(
+                var result= await surveysTokenService.RequestTokenAsync(
                     principal,
                     context.ProtocolMessage.Code,
                     currentUri,
                     _adOptions.WebApiResourceId)
                     .ConfigureAwait(false);
+
+                context.HandleCodeRedemption(result.AccessToken, result.IdToken);
             }
             catch
             {
