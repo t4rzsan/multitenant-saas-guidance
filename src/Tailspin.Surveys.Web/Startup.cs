@@ -73,9 +73,6 @@ namespace Tailspin.Surveys.Web
                 setup.Configuration = configOptions.Redis.Configuration;
             });
 
-            // This will only add the LocalCache implementation of IDistributedCache if there is not an IDistributedCache already registered.
-            services.AddMemoryCache();
-
             services.AddAuthorization(options =>
             {
                 options.AddPolicy(PolicyNames.RequireSurveyCreator,
