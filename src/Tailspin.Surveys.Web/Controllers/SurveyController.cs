@@ -59,7 +59,7 @@ namespace Tailspin.Surveys.Web.Controllers
                 var userId = User.GetSurveyUserIdValue();
                 var user = User.GetObjectIdentifierValue();
                 var issuerValue = User.GetIssuerValue();
-                var actionName = ControllerContext.ActionDescriptor.DisplayName;
+                var actionName = $"{typeof(SurveyController).FullName}.{nameof(Index)}";
                 _logger.GetSurveysForUserOperationStarted(actionName, user, issuerValue);
 
                 // The SurveyService.GetSurveysForUserAsync returns a UserSurveysDTO that has properties for Published, Own, and Contribute
@@ -68,7 +68,7 @@ namespace Tailspin.Surveys.Web.Controllers
                 {
                     // If the user is in the creator role, the view shows a "Create Survey" button.
                     var authResult = await _authorizationService.AuthorizeAsync(User, PolicyNames.RequireSurveyCreator);
-                    ViewBag.IsUserCreator = authResult.Succeeded;
+                    ViewBag.IsUserCreator = authResult?.Succeeded;
                     _logger.GetSurveysForUserOperationSucceeded(actionName, user, issuerValue);
                     return View(result.Item);
                 }
@@ -110,7 +110,7 @@ namespace Tailspin.Surveys.Web.Controllers
                 {
                     // If the user is an administrator, additional functionality is exposed. 
                     var authResult = await _authorizationService.AuthorizeAsync(User, PolicyNames.RequireSurveyAdmin);
-                    ViewBag.IsUserAdmin = authResult.Succeeded;
+                    ViewBag.IsUserAdmin = authResult?.Succeeded;
                     return View(result.Item);
                 }
 

@@ -39,7 +39,7 @@ namespace MultiTentantSurveyAppTests
 
             var services = new ServiceCollection();
             services.AddEntityFrameworkInMemoryDatabase()
-                .AddDbContext<ApplicationDbContext>(options => options.UseInMemoryDatabase());
+                .AddDbContext<ApplicationDbContext>(options => options.UseInMemoryDatabase("SurveysDb"));
 
             _target = new SurveyController(_surveyService, _logger, _authorizationService);
             _target.TempData = A.Fake<Microsoft.AspNetCore.Mvc.ViewFeatures.ITempDataDictionary>();
@@ -111,7 +111,7 @@ namespace MultiTentantSurveyAppTests
             A.CallTo(() => apiResultContributors.Succeeded).Returns(true);
             A.CallTo(() => _surveyService.ProcessPendingContributorRequestsAsync()).Invokes(() => surveyContributorProcessed = true)
                 .Returns(Task<ApiResult>.FromResult(new ApiResult()));
-            
+
             _target.ControllerContext = CreateActionContextWithUserPrincipal("54321", "unregistereduser@contoso.com");
             var result = await _target.Index();
 
