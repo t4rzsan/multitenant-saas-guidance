@@ -48,7 +48,7 @@ namespace Tailspin.Surveys.Web.Security
         /// <returns>A completed <see cref="System.Threading.Tasks.Task"/></returns>
         public override Task RedirectToIdentityProvider(RedirectContext context)
         {
-            if (context.IsSigningUp())
+            if (context.Properties.IsSigningUp())
             {
                 context.ProtocolMessage.Prompt = "admin_consent";
             }
@@ -198,7 +198,7 @@ namespace Tailspin.Surveys.Web.Security
             var tenant = await tenantManager.FindByIssuerValueAsync(issuerValue)
                 .ConfigureAwait(false);
 
-            if (context.IsSigningUp())
+            if (context.Properties.IsSigningUp())
             {
                 // Originally, we were checking to see if the tenant was non-null, however, this would not allow
                 // permission changes to the application in AAD since a re-consent may be required.  Now we just don't
