@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
-using System.IO;
+using Microsoft.Extensions.Hosting;
+using System;
 
 namespace Tailspin.Surveys.Web
 {
@@ -8,20 +9,30 @@ namespace Tailspin.Surveys.Web
     {
         public static void Main(string[] args)
         {
-            var config = new ConfigurationBuilder()
-                .AddCommandLine(args)
-                .AddEnvironmentVariables(prefix: "ASPNETCORE_")
-                .Build();
-
-            var host = new WebHostBuilder()
-                .UseConfiguration(config)
-                .UseKestrel()
-                .UseContentRoot(Directory.GetCurrentDirectory())
-                .UseIISIntegration()
-                .UseStartup<Startup>()
-                .Build();
-
-            host.Run();
+            CreateHostBuilder(args).Build().Run();
         }
+
+        public static IHostBuilder CreateHostBuilder(string[] args) =>
+            Host.CreateDefaultBuilder(args)
+
+                // Uncomment the block of code below if you want to load secrets from KeyVault
+                // It is recommended to use certs for all authentication when using KeyVault
+                //.ConfigureAppConfiguration((context, config) =>
+                //{
+                //    var builtConfig = config.Build();
+                //
+                //    if (context.HostingEnvironment.IsProduction())
+                //    {
+                //        config.AddAzureKeyVault(
+                //            $"https://{builtConfig["KeyVault:Name"]}.vault.azure.net/"
+                //            , builtConfig["AzureAd:ClientId"]
+                //            , builtConfig["AzureAd:ClientSecret"]);
+                //    }
+                //})
+                .ConfigureWebHostDefaults(webBuilder =>
+                {
+                    webBuilder.UseStartup<Startup>();
+                });
     }
 }
+

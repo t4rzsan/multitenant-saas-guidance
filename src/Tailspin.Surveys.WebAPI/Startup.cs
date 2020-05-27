@@ -5,10 +5,10 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.IdentityModel.Tokens;
 using Tailspin.Surveys.Data.DataModels;
@@ -24,30 +24,22 @@ namespace Tailspin.Surveys.WebAPI
     /// </summary>
     public class Startup
     {
-        public Startup(IHostingEnvironment env, ILoggerFactory loggerFactory)
+        public IConfiguration Configuration { get; }
+
+        public Startup(IConfiguration configuration)
         {
-            InitializeLogging(loggerFactory);
-            var builder = new ConfigurationBuilder()
-                .SetBasePath(env.ContentRootPath)
-                .AddJsonFile("appsettings.json");
-
-            if (env.IsDevelopment())
-            {
-                // This reads the configuration keys from the secret store.
-                // For more details on using the user secret store see http://go.microsoft.com/fwlink/?LinkID=532709
-                builder.AddUserSecrets<Startup>();
-            }
-            builder.AddEnvironmentVariables();
-
-            Configuration = builder.Build();
+            Configuration = configuration;
         }
 
-        public IConfigurationRoot Configuration { get; }
-
-        // This method gets called by a runtime.
-        // Use this method to add services to the container
+        // This method gets called by a runtime. Use this method to add services to the container
         public void ConfigureServices(IServiceCollection services)
         {
+            var loggerFactory = LoggerFactory.Create(builder =>
+            {
+                builder.AddDebug();
+                builder.SetMinimumLevel(Microsoft.Extensions.Logging.LogLevel.Information);
+            });
+
             services.AddAuthorization(options =>
             {
                 options.AddPolicy(PolicyNames.RequireSurveyCreator,
@@ -73,7 +65,7 @@ namespace Tailspin.Surveys.WebAPI
             services.AddScoped<TenantManager, TenantManager>();
             services.AddScoped<UserManager, UserManager>();
 
-            services.AddMvc();
+            services.AddControllers();
 
             services.AddScoped<ISurveyStore, SqlServerSurveyStore>();
             services.AddScoped<IQuestionStore, SqlServerQuestionStore>();
@@ -83,41 +75,37 @@ namespace Tailspin.Surveys.WebAPI
                 var loggerFactory = factory.GetService<ILoggerFactory>();
                 return new SurveyAuthorizationHandler(loggerFactory.CreateLogger<SurveyAuthorizationHandler>());
             });
+            services.AddHttpContextAccessor();
 
-            //
-            //http://stackoverflow.com/questions/37371264/asp-net-core-rc2-invalidoperationexception-unable-to-resolve-service-for-type/37373557
-            services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
-            //
-        }
-
-        // Configure is called after ConfigureServices is called.
-        public void Configure(IApplicationBuilder app, IHostingEnvironment env, ApplicationDbContext dbContext, ILoggerFactory loggerFactory)
-        {
             var configOptions = new AppConfiguration.ConfigurationOptions();
             Configuration.Bind(configOptions);
 
+            services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+                .AddJwtBearer(options =>
+            {
+                options.Audience = configOptions.AzureAd.WebApiResourceId;
+                options.Authority = Constants.AuthEndpointPrefix;
+                options.TokenValidationParameters = new TokenValidationParameters { ValidateIssuer = false };
+                options.Events = new SurveysJwtBearerEvents(loggerFactory.CreateLogger<SurveysJwtBearerEvents>());
+            });
+        }
+
+        // Configure is called after ConfigureServices is called.
+        public void Configure(IApplicationBuilder app, IWebHostEnvironment env, ApplicationDbContext dbContext, ILoggerFactory loggerFactory)
+        {
             if (env.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
-
-                app.UseDatabaseErrorPage();
+                app.UseDatabaseErrorPage();           
             }
 
-            app.UseJwtBearerAuthentication(new JwtBearerOptions {
-                Audience = configOptions.AzureAd.WebApiResourceId,
-                Authority = Constants.AuthEndpointPrefix,
-                TokenValidationParameters = new TokenValidationParameters {
-                    ValidateIssuer = false
-                },
-                Events= new SurveysJwtBearerEvents(loggerFactory.CreateLogger<SurveysJwtBearerEvents>())
+            app.UseHttpsRedirection();
+            app.UseRouting();
+            app.UseAuthorization();
+            app.UseEndpoints(endpoints =>
+            {
+                endpoints.MapControllers();
             });
-            
-            // Add MVC to the request pipeline.
-            app.UseMvc();
-        }
-        private void InitializeLogging(ILoggerFactory loggerFactory)
-        {
-            loggerFactory.AddDebug(LogLevel.Information);
         }
     }
 }

@@ -31,7 +31,7 @@ namespace Tailspin.Surveys.Tests
             // Create a new options instance telling the context to use an
             // InMemory database and the new service provider.
             var builder = new DbContextOptionsBuilder<ApplicationDbContext>();
-            builder.UseInMemoryDatabase()
+            builder.UseInMemoryDatabase("SurveysDb")
                    .UseInternalServiceProvider(serviceProvider);
 
             return builder.Options;
@@ -66,6 +66,10 @@ namespace Tailspin.Surveys.Tests
             // Run the test against one instance of the context
             using (var context = new ApplicationDbContext(options))
             {
+                var user = new User
+                {
+                    Id = 2
+                };
                 var survey = new Survey
                 {
                     Id = 1,
@@ -74,6 +78,7 @@ namespace Tailspin.Surveys.Tests
                         new SurveyContributor { SurveyId = 1, UserId = 2 }
                     }
                 };
+                context.Add(user);
                 context.Add(survey);
                 context.SaveChanges();
             }

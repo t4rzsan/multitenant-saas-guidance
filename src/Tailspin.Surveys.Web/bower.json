@@ -4,5 +4,6 @@
   "dependencies": {
     "bootstrap": "3.0.0",
     "jquery-validation": "1.11.1"
+
   }
 }

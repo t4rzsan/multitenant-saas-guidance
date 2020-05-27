@@ -2,15 +2,11 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Security.Claims;
-using System.Threading.Tasks;
 using Microsoft.AspNetCore.DataProtection;
-using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Logging;
 using Microsoft.IdentityModel.Clients.ActiveDirectory;
 using Tailspin.Surveys.Common;
-using System.Threading;
-using Microsoft.AspNetCore.Http.Authentication;
 
 namespace Tailspin.Surveys.TokenStorage
 {
@@ -59,11 +55,10 @@ namespace Tailspin.Surveys.TokenStorage
         {
             Guard.ArgumentNotNull(claimsPrincipal, nameof(claimsPrincipal));
 
-            string clientId = claimsPrincipal.FindFirstValue("aud", true);
             return string.Format(
                 "UserId:{0}::ClientId:{1}",
                 claimsPrincipal.GetObjectIdentifierValue(),
-                clientId);
+                claimsPrincipal.GetTenantIdValue());
         }
 
         /// <summary>
@@ -74,7 +69,7 @@ namespace Tailspin.Surveys.TokenStorage
             byte[] cacheData = _distributedCache.Get(_cacheKey);
             if (cacheData != null)
             {
-                this.Deserialize(_protector.Unprotect(cacheData));
+                this.DeserializeAdalV3(_protector.Unprotect(cacheData));
                 _logger.TokensRetrievedFromStore(_cacheKey);
             }
         }
@@ -91,7 +86,7 @@ namespace Tailspin.Surveys.TokenStorage
                 {
                     if (this.Count > 0)
                     {
-                        _distributedCache.Set(_cacheKey, _protector.Protect(this.Serialize()));
+                        _distributedCache.Set(_cacheKey, _protector.Protect(this.SerializeAdalV3()));
                         _logger.TokensWrittenToStore(args.ClientId, args.UniqueId, args.Resource);
                     }
                     else

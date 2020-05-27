@@ -3,28 +3,29 @@
 
 using System;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Tailspin.Surveys.Common;
 
 namespace Tailspin.Surveys.Web.Security
 {
     /// <summary>
-    /// Extension methods for the ASP.NET BaseControlCOntext.
+    /// Extension methods for the ASP.NET AuthenticationProperties.
     /// </summary>
-    internal static class BaseControlContextExtensions
+    internal static class AuthenticationPropertiesExtensions
     {
         /// <summary>
         /// Extension method to see if the current process flow is the sign up process.
         /// </summary>
-        /// <param name="context">BaseControlContext from ASP.NET.</param>
+        /// <param name="properties">AuthenticationProperties from ASP.NET.</param>
         /// <returns>true if the user is signing up a tenant, otherwise, false.</returns>
-        internal static bool IsSigningUp(this BaseControlContext context)
+        internal static bool IsSigningUp(this AuthenticationProperties properties)
         {
-            Guard.ArgumentNotNull(context, nameof(context));
+            Guard.ArgumentNotNull(properties, nameof(properties));
 
-            string signupValue;
+            string signupValue = string.Empty;
             // Check the HTTP context and convert to string
-            if ((context.Ticket == null) ||
-                (!context.Ticket.Properties.Items.TryGetValue("signup", out signupValue)))
+            if ((properties == null) ||
+                (!properties.Items.TryGetValue("signup", out signupValue)))
             {
                 return false;
             }
