@@ -4,8 +4,8 @@
 }
 <h2>@ViewData["Title"]</h2>
 
-@Html.Partial("_ValidationPartial")
+<partial name="_ValidationPartial" />
 
 <form asp-action="Edit" method="post">
-    @Html.Partial("_QuestionEditPartial", Model)
+    <partial name="_QuestionEditPartial" model="Model"/>
 </form>
