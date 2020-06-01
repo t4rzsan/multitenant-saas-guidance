@@ -6,10 +6,10 @@
 
 <h3 class="alert-danger">Are you sure that you want to publish this survey?</h3>
 
-@Html.Partial("_ValidationPartial")
+<partial name="_ValidationPartial" />
 
 <form asp-action="Publish" method="POST" asp-route-id="@Model.Id">
-    @Html.Partial("_ConfirmPartial")
+    <partial name="_ConfirmPartial" />
 </form>
 
-@Html.Partial("_SurveyDetailPartial", Model)
+<partial name="_SurveyDetailPartial" model="Model"/>

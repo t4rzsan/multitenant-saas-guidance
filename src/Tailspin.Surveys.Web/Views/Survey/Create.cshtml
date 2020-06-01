@@ -4,7 +4,7 @@
 }
 <h2>@ViewData["Title"]</h2>
 
-@Html.Partial("_ValidationPartial")
+<partial name="_ValidationPartial" />
 
 <form asp-action="Create" method="post">
     <div class="form-group">
@@ -17,6 +17,6 @@
         <span asp-validation-for="Title" class="text-danger"></span>
     </div>
     <div class="row">
-        @Html.Partial("_ConfirmPartial")
+        <partial name="_ConfirmPartial" />
     </div>
 </form>
