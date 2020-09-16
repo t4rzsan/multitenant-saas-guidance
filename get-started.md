@@ -205,7 +205,7 @@ The Surveys application uses Redis to cache OAuth 2 access tokens. To create the
 
 6. After the Redis cache is created, navigate to the resource in the portal.
 
-7. ClSelectick **Access keys** and copy the primary key.
+7. Click **Access keys** and copy the primary key.
 
 For more information about creating a Redis cache, see [Quickstart: Use Azure Cache for Redis with a .NET Framework application](https://docs.microsoft.com/azure/azure-cache-for-redis/cache-dotnet-how-to-use-azure-redis-cache).
 
