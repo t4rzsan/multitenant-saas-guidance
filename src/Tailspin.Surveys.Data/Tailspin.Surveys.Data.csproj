@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <Description>Tailspin.Surveys.Data Class Library</Description>
-    <TargetFramework>netcoreapp3.1</TargetFramework>
+    <TargetFramework>net5.0</TargetFramework>
     <AssemblyName>Tailspin.Surveys.Data</AssemblyName>
     <PackageId>Tailspin.Surveys.Data</PackageId>
     <UserSecretsId>aspnet-Tailspin.Surveys.Data-20151113061518</UserSecretsId>

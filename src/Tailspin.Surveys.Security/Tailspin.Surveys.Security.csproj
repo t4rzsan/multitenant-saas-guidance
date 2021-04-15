@@ -2,7 +2,7 @@
  
   <PropertyGroup>
     <Description>Tailspin.Surveys.Security Class Library</Description>
-    <TargetFramework>netcoreapp3.1</TargetFramework>
+    <TargetFramework>net5.0</TargetFramework>
     <AssemblyName>Tailspin.Surveys.Security</AssemblyName>
     <PackageId>Tailspin.Surveys.Security</PackageId>
   </PropertyGroup>
