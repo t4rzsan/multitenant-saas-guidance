@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Security.Claims;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.Extensions.Caching.Distributed;
@@ -19,12 +17,12 @@ namespace Tailspin.Surveys.TokenStorage
         private string _cacheKey;
 
         /// <summary>
-        /// Initializes a new instance of <see cref="Tailspin.Surveys.TokenStorage.DistributedTokenCache"/>
+        /// Initializes a new instance of <see cref="DistributedTokenCache"/>
         /// </summary>
-        /// <param name="claimsPrincipal">A <see cref="System.Security.Claims.ClaimsPrincipal"/> for the signed in user</param>
-        /// <param name="distributedCache">An implementation of <see cref="Microsoft.Extensions.Caching.Distributed.IDistributedCache"/> in which to store the access tokens.</param>
-        /// <param name="loggerFactory"><see cref="Microsoft.Extensions.Logging.ILoggerFactory"/> used to create type-specific <see cref="Microsoft.Extensions.Logging.ILogger"/> instances.</param>
-        /// <param name="dataProtectionProvider">An <see cref="Microsoft.AspNetCore.DataProtection.IDataProtectionProvider"/> for creating a data protector.</param>
+        /// <param name="claimsPrincipal">A <see cref="ClaimsPrincipal"/> for the signed in user</param>
+        /// <param name="distributedCache">An implementation of <see cref="IDistributedCache"/> in which to store the access tokens.</param>
+        /// <param name="loggerFactory"><see cref="ILoggerFactory"/> used to create type-specific <see cref="Microsoft.Extensions.Logging.ILogger"/> instances.</param>
+        /// <param name="dataProtectionProvider">An <see cref="IDataProtectionProvider"/> for creating a data protector.</param>
         public DistributedTokenCache(
             ClaimsPrincipal claimsPrincipal,
             IDistributedCache distributedCache,
@@ -49,7 +47,7 @@ namespace Tailspin.Surveys.TokenStorage
         /// <summary>
         /// Builds the cache key to use for this item in the distributed cache.
         /// </summary>
-        /// <param name="claimsPrincipal">A <see cref="System.Security.Claims.ClaimsPrincipal"/> for the signed in user</param>
+        /// <param name="claimsPrincipal">A <see cref="ClaimsPrincipal"/> for the signed in user</param>
         /// <returns>Cache key for this item.</returns>
         private static string BuildCacheKey(ClaimsPrincipal claimsPrincipal)
         {
@@ -69,7 +67,7 @@ namespace Tailspin.Surveys.TokenStorage
             byte[] cacheData = _distributedCache.Get(_cacheKey);
             if (cacheData != null)
             {
-                this.DeserializeAdalV3(_protector.Unprotect(cacheData));
+                DeserializeAdalV3(_protector.Unprotect(cacheData));
                 _logger.TokensRetrievedFromStore(_cacheKey);
             }
         }
@@ -77,16 +75,16 @@ namespace Tailspin.Surveys.TokenStorage
         /// <summary>
         /// Handles the AfterAccessNotification event, which is triggered right after ADAL accesses the cache.
         /// </summary>
-        /// <param name="args">An instance of <see cref="Microsoft.IdentityModel.Clients.ActiveDirectory.TokenCacheNotificationArgs"/> containing information for this event.</param>
+        /// <param name="args">An instance of <see cref="TokenCacheNotificationArgs"/> containing information for this event.</param>
         public void AfterAccessNotification(TokenCacheNotificationArgs args)
         {
-            if (this.HasStateChanged)
+            if (HasStateChanged)
             {
                 try
                 {
-                    if (this.Count > 0)
+                    if (Count > 0)
                     {
-                        _distributedCache.Set(_cacheKey, _protector.Protect(this.SerializeAdalV3()));
+                        _distributedCache.Set(_cacheKey, _protector.Protect(SerializeAdalV3()));
                         _logger.TokensWrittenToStore(args.ClientId, args.UniqueId, args.Resource);
                     }
                     else
@@ -97,7 +95,7 @@ namespace Tailspin.Surveys.TokenStorage
                         _distributedCache.Remove(_cacheKey);
                         _logger.TokenCacheCleared(_claimsPrincipal.GetObjectIdentifierValue(false) ?? "<none>");
                     }
-                    this.HasStateChanged = false;
+                    HasStateChanged = false;
                 }
                 catch (Exception exp)
                 {
