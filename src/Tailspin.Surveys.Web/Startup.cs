@@ -39,7 +39,7 @@ namespace Tailspin.Surveys.Web
             var loggerFactory = LoggerFactory.Create(builder =>
             {
                 builder.AddDebug();
-                builder.SetMinimumLevel(Microsoft.Extensions.Logging.LogLevel.Information);
+                builder.SetMinimumLevel(LogLevel.Information);
             });
 
             services.Configure<SurveyAppConfiguration.ConfigurationOptions>(options => Configuration.Bind(options));

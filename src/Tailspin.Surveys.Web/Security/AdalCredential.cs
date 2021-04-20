@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using Microsoft.IdentityModel.Clients.ActiveDirectory;
+﻿using Microsoft.IdentityModel.Clients.ActiveDirectory;
 using Tailspin.Surveys.Common;
 
 namespace Tailspin.Surveys.Web.Security
@@ -13,7 +9,7 @@ namespace Tailspin.Surveys.Web.Security
     public class AdalCredential
     {
         /// <summary>
-        /// Creates a new instance of the <see cref="Tailspin.Surveys.Security.AdalCredential"/>
+        /// Creates a new instance of the <see cref="Surveys.Security.AdalCredential"/>
         /// </summary>
         /// <param name="clientCredential">A <see cref="Microsoft.IdentityModel.Clients.ActiveDirectory.ClientCredential"/> instance to store in this credential.</param>
         public AdalCredential(ClientCredential clientCredential)
@@ -25,7 +21,7 @@ namespace Tailspin.Surveys.Web.Security
         }
 
         /// <summary>
-        /// Creates a new instance of the <see cref="Tailspin.Surveys.Security.AdalCredential"/>
+        /// Creates a new instance of the <see cref="Surveys.Security.AdalCredential"/>
         /// </summary>
         /// <param name="clientAssertionCertificate">A <see cref="Microsoft.IdentityModel.Clients.ActiveDirectory.ClientAssertionCertificate"/> instance containing an X509 certificate that identifies the client.</param>
         public AdalCredential(ClientAssertionCertificate clientAssertionCertificate)
@@ -37,7 +33,7 @@ namespace Tailspin.Surveys.Web.Security
         }
 
         /// <summary>
-        /// Credential type stored in this <see cref="Tailspin.Surveys.Security.AdalCredential"/> instance.
+        /// Credential type stored in this <see cref="Surveys.Security.AdalCredential"/> instance.
         /// </summary>
         public AdalCredentialType CredentialType { get; private set; }
 

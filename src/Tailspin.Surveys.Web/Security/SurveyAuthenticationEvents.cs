@@ -2,7 +2,6 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System;
-using System.IdentityModel.Tokens;
 using System.Linq;
 using System.Security.Claims;
 using System.Threading.Tasks;
@@ -30,10 +29,10 @@ namespace Tailspin.Surveys.Web.Security
         private readonly ILogger _logger;
 
         /// <summary>
-        /// Initializes a new instance of <see cref="Tailspin.Surveys.Web.Security.SurveyAuthenticationEvents"/>.
+        /// Initializes a new instance of <see cref="SurveyAuthenticationEvents"/>.
         /// </summary>
         /// <param name="adOptions">Application settings related to Azure Active Directory.</param>
-        /// <param name="loggerFactory"><see cref="Microsoft.Extensions.Logging.ILoggerFactory"/> used to create type-specific <see cref="Microsoft.Extensions.Logging.ILogger"/> instances.</param>
+        /// <param name="loggerFactory"><see cref="ILoggerFactory"/> used to create type-specific <see cref="ILogger"/> instances.</param>
         public SurveyAuthenticationEvents(AzureAdOptions adOptions, ILoggerFactory loggerFactory)
         {
             _adOptions = adOptions;
@@ -44,8 +43,8 @@ namespace Tailspin.Surveys.Web.Security
         /// Called prior to the OIDC middleware redirecting to the authentication endpoint.  In the event we are signing up a tenant, we need to
         /// put the "admin_consent" value for the prompt query string parameter.  AAD uses this to show the admin consent flow.
         /// </summary>
-        /// <param name="context">The <see cref="Microsoft.AspNetCore.Authentication.OpenIdConnect.RedirectContext"/> for this event.</param>
-        /// <returns>A completed <see cref="System.Threading.Tasks.Task"/></returns>
+        /// <param name="context">The <see cref="RedirectContext"/> for this event.</param>
+        /// <returns>A completed <see cref="Task"/></returns>
         public override Task RedirectToIdentityProvider(RedirectContext context)
         {
             if (context.Properties.IsSigningUp())
@@ -60,7 +59,7 @@ namespace Tailspin.Surveys.Web.Security
         /// <summary>
         /// Transforms the claims from AAD to well-known claims.
         /// </summary>
-        /// <param name="principal">The current <see cref="System.Security.Claims.ClaimsPrincipal"/></param>
+        /// <param name="principal">The current <see cref="ClaimsPrincipal"/></param>
         private static void NormalizeClaims(ClaimsPrincipal principal)
         {
             Guard.ArgumentNotNull(principal, nameof(principal));
@@ -183,7 +182,7 @@ namespace Tailspin.Surveys.Web.Security
         /// and sign in work is done.
         /// </summary>
         /// <param name="context">An OIDC-supplied <see cref="Microsoft.AspNetCore.Authentication.OpenIdConnect.AuthenticationValidatedContext"/> containing the current authentication information.</param>
-        /// <returns>a completed <see cref="System.Threading.Tasks.Task"/></returns>
+        /// <returns>a completed <see cref="Task"/></returns>
         public override async Task TokenValidated(TokenValidatedContext context)
         {
             var principal = context.Principal;
@@ -229,8 +228,8 @@ namespace Tailspin.Surveys.Web.Security
         /// <summary>
         /// Called by the OIDC middleware when authentication fails.
         /// </summary>
-        /// <param name="context">An OIDC-middleware supplied <see cref="Microsoft.AspNetCore.Authentication.OpenIdConnect.AuthenticationFailedContext"/> containing information about the failed authentication.</param>
-        /// <returns>A completed <see cref="System.Threading.Tasks.Task"/></returns>
+        /// <param name="context">An OIDC-middleware supplied <see cref="AuthenticationFailedContext"/> containing information about the failed authentication.</param>
+        /// <returns>A completed <see cref="Task"/></returns>
         public override Task AuthenticationFailed(AuthenticationFailedContext context)
         {
             _logger.AuthenticationFailed(context.Exception);
@@ -243,8 +242,7 @@ namespace Tailspin.Surveys.Web.Security
 
             var request = context.HttpContext.Request;
             var currentUri = UriHelper.BuildAbsolute(request.Scheme, request.Host, request.PathBase, request.Path);
-            var properties = context.Properties;
-
+      
             var surveysTokenService = context.HttpContext.RequestServices.GetService<ISurveysTokenService>();
             try
             {

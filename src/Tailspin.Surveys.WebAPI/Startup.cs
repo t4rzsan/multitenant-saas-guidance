@@ -37,7 +37,7 @@ namespace Tailspin.Surveys.WebAPI
             var loggerFactory = LoggerFactory.Create(builder =>
             {
                 builder.AddDebug();
-                builder.SetMinimumLevel(Microsoft.Extensions.Logging.LogLevel.Information);
+                builder.SetMinimumLevel(LogLevel.Information);
             });
 
             services.AddAuthorization(options =>

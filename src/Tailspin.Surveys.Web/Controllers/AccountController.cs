@@ -37,17 +37,17 @@ namespace Tailspin.Surveys.Web.Controllers
                 new AuthenticationProperties
                 {
                     IsPersistent = true,
-                    RedirectUri = Url.Action("SignInCallback", "Account")
+                    RedirectUri = Url.Action(nameof(SignInCallback), "Account")
                 });
         }
 
         /// <summary>
         /// Signs out a previously authenticated user.
         /// </summary>
-        /// <returns>A <see cref="Microsoft.AspNetCore.Mvc.IActionResult"/> containing the result of the sign out operation.</returns>
+        /// <returns>A <see cref="IActionResult"/> containing the result of the sign out operation.</returns>
         public async Task<IActionResult> SignOut()
         {
-            var callbackUrl = Url.Action("SignOutCallback", "Account", values: null, protocol: Request.Scheme);
+            var callbackUrl = Url.Action(nameof(SignOutCallback), "Account", values: null, protocol: Request.Scheme);
             return await _signInManager.SignOutAsync(callbackUrl);
         }
 
@@ -71,12 +71,12 @@ namespace Tailspin.Surveys.Web.Controllers
         /// Callback method used by the tenant sign up flow.  This can be used for any sign up post-processing work.
         /// </summary>
         /// <param name="returnUrl">Unused in the current implementation.</param>
-        /// <returns>A <see cref="Microsoft.AspNetCore.Mvc.IActionResult"/> containing the result of the sign out operation.</returns>
+        /// <returns>A <see cref="IActionResult"/> containing the result of the sign out operation.</returns>
         [HttpGet]
         public async Task<IActionResult> SignUpCallback(string returnUrl = null)
         {
             // Because of app roles, we need to sign out the user and redirect them to the instructions page.
-            var redirectUrl = Url.Action("SignUpSuccess", "Account", values: null, protocol: Request.Scheme);
+            var redirectUrl = Url.Action(nameof(SignUpSuccess), "Account", values: null, protocol: Request.Scheme);
             return await _signInManager.SignOutAsync(redirectUrl);
         }
 
@@ -90,7 +90,7 @@ namespace Tailspin.Surveys.Web.Controllers
         /// <summary>
         /// Callback method used when a previously authenticated user is signed up.  This can be used for any sign out post-processing.
         /// </summary>
-        /// <returns>A <see cref="Microsoft.AspNetCore.Mvc.RedirectToActionResult"/> representing where to redirect the user after sign out has completed.</returns>
+        /// <returns>A <see cref="RedirectToActionResult"/> representing where to redirect the user after sign out has completed.</returns>
         [AllowAnonymous]
         public IActionResult SignOutCallback()
         {
@@ -101,7 +101,7 @@ namespace Tailspin.Surveys.Web.Controllers
         /// Callback method used when a user has been successfully authenticated.  This can be used for any sign in post-processing.
         /// </summary>
         /// <remarks>Any modifications to the user's <see cref="System.Security.Claims.ClaimsPrincipal"/> within this callback will not be persisted across requests.</remarks>
-        /// <returns>A <see cref="Microsoft.AspNetCore.Mvc.RedirectToActionResult"/> representing where to redirect the user after authentication has completed.</returns>
+        /// <returns>A <see cref="RedirectToActionResult"/> representing where to redirect the user after authentication has completed.</returns>
         [HttpGet]
         public IActionResult SignInCallback(string returnUrl = null)
         {

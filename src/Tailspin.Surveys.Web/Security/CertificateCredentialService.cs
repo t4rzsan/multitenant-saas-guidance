@@ -23,7 +23,7 @@ namespace Tailspin.Surveys.Web.Security
         private Lazy<Task<AdalCredential>> _credential;
 
         /// <summary>
-        /// Initializes a new instance of <see cref="Tailspin.Surveys.Security.CertificateCredentialService"/>.
+        /// Initializes a new instance of <see cref="Surveys.Security.CertificateCredentialService"/>.
         /// </summary>
         /// <param name="options">Configuration options for this instance."/></param>
         public CertificateCredentialService(IOptions<ConfigurationOptions> options)

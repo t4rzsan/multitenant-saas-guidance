@@ -12,7 +12,6 @@ using Tailspin.Surveys.Common.Configuration;
 using Tailspin.Surveys.TokenStorage;
 using Tailspin.Surveys.Web.Configuration;
 using Tailspin.Surveys.Web.Logging;
-using System.Globalization;
 
 namespace Tailspin.Surveys.Web.Security
 {
@@ -27,7 +26,7 @@ namespace Tailspin.Surveys.Web.Security
         private readonly ICredentialService _credentialService;
 
         /// <summary>
-        /// Initializes a new instance of <see cref="Tailspin.Surveys.Web.Security.SurveysTokenService"/>.
+        /// Initializes a new instance of <see cref="SurveysTokenService"/>.
         /// </summary>
         /// <param name="options"></param>
         /// <param name="tokenCacheService"></param>
@@ -105,7 +104,7 @@ namespace Tailspin.Surveys.Web.Security
         /// <param name="authorizationCode">a string authorization code obtained when the user signed in</param>
         /// <param name="redirectUri">The Uri of the application requesting the access token</param>
         /// <param name="resource">The resouce identifier of the target resource</param>
-        /// <returns>A <see cref="System.Threading.Tasks.Task{Microsoft.IdentityModel.Clients.ActiveDirectory.AuthenticationResult}"/>.</returns>
+        /// <returns>A <see cref="Task{AuthenticationResult}"/>.</returns>
         public async Task<AuthenticationResult> RequestTokenAsync(
             ClaimsPrincipal claimsPrincipal,
             string authorizationCode,
@@ -142,10 +141,10 @@ namespace Tailspin.Surveys.Web.Security
         }
 
         /// <summary>
-        /// This method clears the user's <see cref="Microsoft.IdentityModel.Clients.ActiveDirectory.TokenCache"/>.
+        /// This method clears the user's <see cref="TokenCache"/>.
         /// </summary>
-        /// <param name="claimsPrincipal">The <see cref="System.Security.Claims.ClaimsPrincipal"/> for the user</param>
-        /// <returns>A <see cref="System.Threading.Tasks.Task"/></returns>
+        /// <param name="claimsPrincipal">The <see cref="ClaimsPrincipal"/> for the user</param>
+        /// <returns>A <see cref="Task"/></returns>
         public async Task ClearCacheAsync(ClaimsPrincipal claimsPrincipal)
         {
             Guard.ArgumentNotNull(claimsPrincipal, nameof(claimsPrincipal));

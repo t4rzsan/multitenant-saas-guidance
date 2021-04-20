@@ -9,7 +9,7 @@ using Tailspin.Surveys.Web.Configuration;
 namespace Tailspin.Surveys.Web.Security
 {
     /// <summary>
-    /// Creates and caches an instance of <see cref="Microsoft.IdentityModel.Clients.ActiveDirectory.ClientCredential"/>.
+    /// Creates and caches an instance of <see cref="ClientCredential"/>.
     /// </summary>
     public class ClientCredentialService : ICredentialService
     {
@@ -26,9 +26,9 @@ namespace Tailspin.Surveys.Web.Security
         }
 
         /// <summary>
-        /// Returns the cached instance of <see cref="Microsoft.IdentityModel.Clients.ActiveDirectory.ClientCredential"/>.
+        /// Returns the cached instance of <see cref="ClientCredential"/>.
         /// </summary>
-        /// <returns>A <see cref="System.Threading.Tasks.Task"/> containing the cached <see cref="Microsoft.IdentityModel.Clients.ActiveDirectory.ClientCredential"/> as its result.</returns>
+        /// <returns>A <see cref="Task"/> containing the cached <see cref="ClientCredential"/> as its result.</returns>
         public Task<AdalCredential> GetCredentialsAsync()
         {
             return Task.FromResult(_credential);
