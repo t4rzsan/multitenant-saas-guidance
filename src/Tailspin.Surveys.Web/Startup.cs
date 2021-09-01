@@ -2,21 +2,21 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authentication.OpenIdConnect;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using Microsoft.IdentityModel.Protocols.OpenIdConnect;
-using Microsoft.IdentityModel.Tokens;
-using System;
-using Tailspin.Surveys.Common;
+using Microsoft.Identity.Web;
+using Microsoft.Identity.Web.UI;
 using Tailspin.Surveys.Data.DataModels;
 using Tailspin.Surveys.Security.Policy;
-using Tailspin.Surveys.TokenStorage;
 using Tailspin.Surveys.Web.Security;
 using Tailspin.Surveys.Web.Services;
 using SurveyAppConfiguration = Tailspin.Surveys.Web.Configuration;
@@ -45,32 +45,14 @@ namespace Tailspin.Surveys.Web
             services.Configure<SurveyAppConfiguration.ConfigurationOptions>(options => Configuration.Bind(options));
             var configOptions = new SurveyAppConfiguration.ConfigurationOptions();
             Configuration.Bind(configOptions);
-
-            services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
-                .AddCookie(o =>
-                {
-                    o.AccessDeniedPath = "/Home/Forbidden";
-                    o.ExpireTimeSpan = TimeSpan.FromHours(1);
-                    o.SlidingExpiration = true;
-                    o.Cookie = (o.Cookie ?? new CookieBuilder());
-                    o.Cookie.SecurePolicy = CookieSecurePolicy.Always;
-                })
-                .AddOpenIdConnect(o =>
-                {
-                    o.ClientId = configOptions.AzureAd.ClientId;
-                    o.ClientSecret = configOptions.AzureAd.ClientSecret;
-                    o.Authority = Constants.AuthEndpointPrefix;
-                    o.ResponseType =  OpenIdConnectResponseType.CodeIdToken;
-                    o.SignedOutRedirectUri = configOptions.AzureAd.PostLogoutRedirectUri;
-                    o.SignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
-                    o.TokenValidationParameters = new TokenValidationParameters { ValidateIssuer = false };
-                    o.Events = new SurveyAuthenticationEvents(configOptions.AzureAd, loggerFactory);
-                });
-
-            // This will add the Redis implementation of IDistributedCache
-            services.AddDistributedRedisCache(setup =>
+            
+            services.Configure<CookiePolicyOptions>(options =>
             {
-                setup.Configuration = configOptions.Redis.Configuration;
+                // This lambda determines whether user consent for non-essential cookies is needed for a given request.
+                options.CheckConsentNeeded = context => true;
+                options.MinimumSameSitePolicy = SameSiteMode.Unspecified;
+                // Handling SameSite cookie according to https://docs.microsoft.com/en-us/aspnet/core/security/samesite?view=aspnetcore-3.1
+                options.HandleSameSiteCookieCompatibility();
             });
 
             services.AddAuthorization(options =>
@@ -96,32 +78,41 @@ namespace Tailspin.Surveys.Web
                     });
             });
 
+            var openIdConnectEvents = new SurveyAuthenticationEvents(loggerFactory);
+            services.AddAuthentication(OpenIdConnectDefaults.AuthenticationScheme)
+             .AddMicrosoftIdentityWebApp(
+                options =>
+                {
+                    Configuration.Bind("AzureAd", options);
+                    options.Events.OnTokenValidated += openIdConnectEvents.TokenValidated;
+                })
+               .EnableTokenAcquisitionToCallDownstreamApi(configOptions.SurveyApi.Scope.Split(';'))
+               .AddInMemoryTokenCaches();
+
             // Add Entity Framework services to the services container.
             services.AddEntityFrameworkSqlServer()
-                .AddDbContext<ApplicationDbContext>(options => options.UseSqlServer(Configuration.GetSection("Data")["SurveysConnectionString"]));
-
-            // Add MVC services to the services container.
-            services.AddControllersWithViews();
+                   .AddDbContext<ApplicationDbContext>(options => options.UseSqlServer(configOptions.Data.SurveysConnectionString), ServiceLifetime.Transient);
 
             // Register application services.
-
-            // This will register IDistributedCache based token cache which ADAL will use for caching access tokens.
-            services.AddScoped<ITokenCacheService, DistributedTokenCacheService>();
-            services.AddScoped<ISurveysTokenService, SurveysTokenService>();
             services.AddSingleton<HttpClientService>();
 
-            // Uncomment the following line to use client certificate credentials.
-            //services.AddSingleton<ICredentialService, CertificateCredentialService>();
-
             // Comment out the following line if you are using client certificates.
-            services.AddSingleton<ICredentialService, ClientCredentialService>();
-
-            services.AddScoped<ISurveyService, SurveyService>();
-            services.AddScoped<IQuestionService, QuestionService>();
-            services.AddScoped<SignInManager, SignInManager>();
-            services.AddScoped<TenantManager, TenantManager>();
-            services.AddScoped<UserManager, UserManager>();
+            services.AddTransient<ISurveyService, SurveyService>();
+            services.AddTransient<IQuestionService, QuestionService>();
+            services.AddTransient<SignInManager, SignInManager>();
+            services.AddTransient<TenantManager, TenantManager>();
+            services.AddTransient<UserManager, UserManager>();
             services.AddHttpContextAccessor();
+        
+            services.AddControllersWithViews(options =>
+            {
+                var policy = new AuthorizationPolicyBuilder()
+                    .RequireAuthenticatedUser()
+                    .Build();
+                options.Filters.Add(new AuthorizeFilter(policy));
+            }).AddMicrosoftIdentityUI();
+
+            services.AddRazorPages();
         }
 
         // Configure is called after ConfigureServices is called.

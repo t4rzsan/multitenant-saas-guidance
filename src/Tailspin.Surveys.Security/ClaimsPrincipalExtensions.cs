@@ -75,7 +75,11 @@ namespace System.Security.Claims
 
         public static string GetEmailValue(this ClaimsPrincipal principal)
         {
-            return principal.FindFirstValue(ClaimTypes.Email, true);
+            var value =  principal.FindFirstValue(ClaimTypes.Email, false);
+            if (value == null) {
+                value = ((System.Security.Claims.ClaimsIdentity)principal.Identity).Name;
+            }                
+            return value;
         }
 
         public static string GetUserName(this ClaimsPrincipal principal)

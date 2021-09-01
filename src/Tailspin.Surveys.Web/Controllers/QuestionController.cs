@@ -3,7 +3,6 @@
 
 using System.Net;
 using System.Threading.Tasks;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Tailspin.Surveys.Data.DTOs;
 using Tailspin.Surveys.Web.Security;
@@ -12,6 +11,7 @@ using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Tailspin.Surveys.Web.Models;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.Identity.Web;
 
 namespace Tailspin.Surveys.Web.Controllers
 {
@@ -19,7 +19,7 @@ namespace Tailspin.Surveys.Web.Controllers
     /// This MVC controller provides actions for the management of <see cref="Tailspin.Surveys.Data.DataModels.Question"/>s.
     /// The actions in this controller class require the user to be signed in.
     /// </summary>
-    [Authorize]
+    [AuthorizeForScopes(ScopeKeySection = "SurveyApi:Scope")]
     public class QuestionController : Controller
     {
         private readonly IQuestionService _questionService;

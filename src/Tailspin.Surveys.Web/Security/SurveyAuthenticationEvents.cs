@@ -25,7 +25,6 @@ namespace Tailspin.Surveys.Web.Security
     /// </summary>
     public class SurveyAuthenticationEvents : OpenIdConnectEvents
     {
-        private readonly AzureAdOptions _adOptions;
         private readonly ILogger _logger;
 
         /// <summary>
@@ -33,9 +32,8 @@ namespace Tailspin.Surveys.Web.Security
         /// </summary>
         /// <param name="adOptions">Application settings related to Azure Active Directory.</param>
         /// <param name="loggerFactory"><see cref="ILoggerFactory"/> used to create type-specific <see cref="ILogger"/> instances.</param>
-        public SurveyAuthenticationEvents(AzureAdOptions adOptions, ILoggerFactory loggerFactory)
+        public SurveyAuthenticationEvents(ILoggerFactory loggerFactory)
         {
-            _adOptions = adOptions;
             _logger = loggerFactory.CreateLogger<SurveyAuthenticationEvents>();
         }
 
@@ -142,8 +140,7 @@ namespace Tailspin.Surveys.Web.Security
                     Email = email
                 };
 
-                await userManager.CreateAsync(user)
-                    .ConfigureAwait(false);
+                await userManager.CreateAsync(user);
             }
             else
             {
@@ -166,8 +163,7 @@ namespace Tailspin.Surveys.Web.Security
                 if (shouldSaveUser)
                 {
                     await userManager
-                        .UpdateAsync(user)
-                        .ConfigureAwait(false);
+                        .UpdateAsync(user);
                 }
             }
 
@@ -194,8 +190,7 @@ namespace Tailspin.Surveys.Web.Security
 
             // Normalize the claims first.
             NormalizeClaims(principal);
-            var tenant = await tenantManager.FindByIssuerValueAsync(issuerValue)
-                .ConfigureAwait(false);
+            var tenant = await tenantManager.FindByIssuerValueAsync(issuerValue);
 
             if (context.Properties.IsSigningUp())
             {
@@ -234,59 +229,6 @@ namespace Tailspin.Surveys.Web.Security
         {
             _logger.AuthenticationFailed(context.Exception);
             return Task.FromResult(0);
-        }
-
-        public override async Task AuthorizationCodeReceived(AuthorizationCodeReceivedContext context)
-        {
-            var principal = context.Principal;
-
-            var request = context.HttpContext.Request;
-            var currentUri = UriHelper.BuildAbsolute(request.Scheme, request.Host, request.PathBase, request.Path);
-      
-            var surveysTokenService = context.HttpContext.RequestServices.GetService<ISurveysTokenService>();
-            try
-            {
-                var result= await surveysTokenService.RequestTokenAsync(
-                    principal,
-                    context.ProtocolMessage.Code,
-                    currentUri,
-                    _adOptions.WebApiResourceId)
-                    .ConfigureAwait(false);
-
-                context.HandleCodeRedemption(result.AccessToken, result.IdToken);
-            }
-            catch
-            {
-                // If an exception is thrown within this event, the user is never set on the OWIN middleware,
-                // so there is no need to sign out.  However, the access token could have been put into the
-                // cache so we need to clean it up.
-                await surveysTokenService.ClearCacheAsync(principal)
-                    .ConfigureAwait(false);
-                throw;
-            }
-
-        }
-
-        // These method are overridden to make it easier to debug the OIDC auth flow.
-
-        public override Task TicketReceived(TicketReceivedContext context)
-        {
-            return base.TicketReceived(context);
-        }
-
-        public override Task TokenResponseReceived(TokenResponseReceivedContext context)
-        {
-            return base.TokenResponseReceived(context);
-        }
-
-        public override Task UserInformationReceived(UserInformationReceivedContext context)
-        {
-            return base.UserInformationReceived(context);
-        }
-
-        public override Task MessageReceived(MessageReceivedContext context)
-        {
-            return base.MessageReceived(context);
         }
     }
 }

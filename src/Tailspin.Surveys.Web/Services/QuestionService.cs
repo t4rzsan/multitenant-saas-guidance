@@ -5,10 +5,12 @@ using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Options;
+using Microsoft.Identity.Web;
 using Tailspin.Surveys.Common;
 using Tailspin.Surveys.Data.DTOs;
+using Tailspin.Surveys.Web.Configuration;
 using Tailspin.Surveys.Web.Models;
-using Tailspin.Surveys.Web.Security;
 
 namespace Tailspin.Surveys.Web.Services
 {
@@ -21,27 +23,26 @@ namespace Tailspin.Surveys.Web.Services
     /// All methods set the user's access token in the Bearer authorization header 
     /// to allow the WebAPI to run on behalf of the signed in user.
     /// </summary>
-    public class QuestionService: IQuestionService
+    public class QuestionService : IQuestionService
     {
-        private readonly IHttpContextAccessor _httpContextAccessor;
-        private readonly ISurveysTokenService _surveysTokenService;
+        private readonly ITokenAcquisition _tokenAcquisition;
         private readonly HttpClient _httpClient;
         private readonly CancellationToken _cancellationToken;
-        
-        public QuestionService(HttpClientService factory, IHttpContextAccessor httpContextAccessor, ISurveysTokenService surveysTokenService)
+        private readonly string[] _scopes;
+
+       public QuestionService(HttpClientService factory, IHttpContextAccessor httpContextAccessor, ITokenAcquisition tokenAcquisition, IOptions<ConfigurationOptions> configOptions)
         {
-            _httpContextAccessor = httpContextAccessor;
+            _tokenAcquisition = tokenAcquisition;
             _httpClient = factory.GetHttpClient();
-            _surveysTokenService = surveysTokenService;
             _cancellationToken = httpContextAccessor?.HttpContext?.RequestAborted ?? CancellationToken.None;
+            _scopes = configOptions.Value.SurveyApi.Scope.Split(';');
         }
 
         public async Task<ApiResult<QuestionDTO>> GetQuestionAsync(int id)
         {
             var path = $"/questions/{id}";
             var response = await _httpClient.SendRequestWithBearerTokenAsync(HttpMethod.Get, path, null,
-                        await _surveysTokenService.GetTokenForWebApiAsync(_httpContextAccessor.HttpContext.User)
-                                .ConfigureAwait(false), _cancellationToken);
+                        await _tokenAcquisition.GetAccessTokenForUserAsync(_scopes), _cancellationToken);
             return await ApiResult<QuestionDTO>.FromResponseAsync(response).ConfigureAwait(false);
         }
 
@@ -49,8 +50,7 @@ namespace Tailspin.Surveys.Web.Services
         {
             var path = $"/surveys/{question.SurveyId}/questions";
             var response = await _httpClient.SendRequestWithBearerTokenAsync(HttpMethod.Post, path, question,
-                        await _surveysTokenService.GetTokenForWebApiAsync(_httpContextAccessor.HttpContext.User)
-                                .ConfigureAwait(false), _cancellationToken);
+                       await _tokenAcquisition.GetAccessTokenForUserAsync(_scopes), _cancellationToken);
             return await ApiResult<QuestionDTO>.FromResponseAsync(response).ConfigureAwait(false);
         }
 
@@ -58,8 +58,7 @@ namespace Tailspin.Surveys.Web.Services
         {
             var path = $"/questions/{question.Id}";
             var response = await _httpClient.SendRequestWithBearerTokenAsync(HttpMethod.Put, path, question,
-                        await _surveysTokenService.GetTokenForWebApiAsync(_httpContextAccessor.HttpContext.User)
-                                .ConfigureAwait(false), _cancellationToken);
+                       await _tokenAcquisition.GetAccessTokenForUserAsync(_scopes), _cancellationToken);
             return await ApiResult<QuestionDTO>.FromResponseAsync(response).ConfigureAwait(false);
         }
 
@@ -67,8 +66,7 @@ namespace Tailspin.Surveys.Web.Services
         {
             var path = $"/questions/{id}";
             var response = await _httpClient.SendRequestWithBearerTokenAsync(HttpMethod.Delete, path, null,
-                        await _surveysTokenService.GetTokenForWebApiAsync(_httpContextAccessor.HttpContext.User)
-                                .ConfigureAwait(false), _cancellationToken);
+                        await _tokenAcquisition.GetAccessTokenForUserAsync(_scopes), _cancellationToken);
             return new ApiResult { Response = response };
         }
     }

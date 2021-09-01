@@ -80,6 +80,8 @@ namespace Tailspin.Surveys.WebAPI
             var configOptions = new AppConfiguration.ConfigurationOptions();
             Configuration.Bind(configOptions);
 
+            services.AddAuthorization();
+
             services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                 .AddJwtBearer(options =>
             {

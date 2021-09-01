@@ -25,7 +25,6 @@ namespace Tailspin.Surveys.Web.Security
         /// Initializes a new instance of <see cref="SignInManager"/>;
         /// </summary>
         /// <param name="contextAccessor">An instance of <see cref="IHttpContextAccessor"/> used to get access to the current HTTP context.</param>
-        /// <param name="surveysTokenService">An instance of <see cref="ISurveysTokenService"/></param>
         /// <param name="logger">An <see cref="ILogger"/> implementation used for diagnostic information.</param>
         public SignInManager(IHttpContextAccessor contextAccessor,
             ILogger<SignInManager> logger)

@@ -18,7 +18,6 @@
     <ProjectReference Include="..\Tailspin.Surveys.Data\Tailspin.Surveys.Data.csproj" />
     <ProjectReference Include="..\Tailspin.Surveys.Common\Tailspin.Surveys.Common.csproj" />
     <ProjectReference Include="..\Tailspin.Surveys.Security\Tailspin.Surveys.Security.csproj" />
-    <ProjectReference Include="..\Tailspin.Surveys.TokenStorage\Tailspin.Surveys.TokenStorage.csproj" />
   </ItemGroup>
 
   <ItemGroup>
@@ -46,7 +45,8 @@
     <PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" Version="5.0.0" />
     <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="5.0.0" />
     <PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="5.0.0" />
-    <PackageReference Include="Microsoft.IdentityModel.Clients.ActiveDirectory" Version="5.2.9" />
+    <PackageReference Include="Microsoft.Identity.Web" Version="1.16.0" />
+    <PackageReference Include="Microsoft.Identity.Web.UI" Version="1.16.0" />
     <PackageReference Include="Microsoft.Web.LibraryManager.Build" Version="2.1.113" />
   </ItemGroup>
 

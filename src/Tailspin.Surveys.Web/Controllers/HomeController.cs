@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Mvc;
@@ -9,6 +10,7 @@ using Tailspin.Surveys.Web.Services;
 
 namespace Tailspin.Surveys.Web.Controllers
 {
+    [AllowAnonymous]
     /// <summary>
     /// This controller provides MVC actions for the Home, Error and Forbidden experiences.
     /// </summary>

@@ -19,6 +19,7 @@ using System;
 using System.Linq;
 using Tailspin.Surveys.Web.Security;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.Identity.Web;
 
 namespace Tailspin.Surveys.Web.Controllers
 {
@@ -26,7 +27,7 @@ namespace Tailspin.Surveys.Web.Controllers
     /// This MVC controller provides actions for the management of <see cref="Survey"/>s.
     /// Most of the actions in this controller class require the user to be signed in.
     /// </summary>
-    [Authorize]
+    [AuthorizeForScopes(ScopeKeySection = "SurveyApi:Scope")]
     public class SurveyController : Controller
     {
         private readonly ISurveyService _surveyService;

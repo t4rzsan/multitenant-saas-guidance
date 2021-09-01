@@ -24,5 +24,6 @@ namespace Tailspin.Surveys.Web.Configuration
         public AppSettingsOptions AppSettings { get; set; }
         public RedisOptions Redis { get; set; }
         public KeyVaultOptions KeyVault { get; set; }
+        public SurveyApiOptions SurveyApi { get; set; }
     }
 }
