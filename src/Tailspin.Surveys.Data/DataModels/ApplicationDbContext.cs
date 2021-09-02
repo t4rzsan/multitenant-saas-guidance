@@ -36,7 +36,7 @@ namespace Tailspin.Surveys.Data.DataModels
                 b.Property(u => u.Created)
                     .IsRequired();
                 b.HasIndex(u => u.ObjectId)
-                    .HasName("UserObjectIdIndex");
+                    .HasDatabaseName("UserObjectIdIndex");
             });
 
             modelBuilder.Entity<Tenant>(b =>
@@ -54,7 +54,7 @@ namespace Tailspin.Surveys.Data.DataModels
                 b.HasMany(typeof(User)).WithOne()
                     .HasForeignKey("TenantId");
                 b.HasIndex(t => t.IssuerValue)
-                    .HasName("IssuerValueIndex")
+                    .HasDatabaseName("IssuerValueIndex")
                     .IsUnique();
             });
 
@@ -77,7 +77,7 @@ namespace Tailspin.Surveys.Data.DataModels
                 b.ToTable("ContributorRequest");
                 b.HasKey(cr => cr.Id);
                 b.HasIndex(cr => new { cr.SurveyId, cr.EmailAddress })
-                    .HasName("SurveyIdEmailAddressIndex")
+                    .HasDatabaseName("SurveyIdEmailAddressIndex")
                     .IsUnique();
                 b.Property(cr => cr.EmailAddress)
                     .IsRequired()

@@ -90,6 +90,7 @@ namespace Tailspin.Surveys.WebAPI
                 options.TokenValidationParameters = new TokenValidationParameters { ValidateIssuer = false };
                 options.Events = new SurveysJwtBearerEvents(loggerFactory.CreateLogger<SurveysJwtBearerEvents>());
             });
+            services.AddDatabaseDeveloperPageExceptionFilter();
         }
 
         // Configure is called after ConfigureServices is called.
@@ -98,7 +99,7 @@ namespace Tailspin.Surveys.WebAPI
             if (env.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
-                app.UseDatabaseErrorPage();           
+                app.UseMigrationsEndPoint();
             }
 
             app.UseHttpsRedirection();

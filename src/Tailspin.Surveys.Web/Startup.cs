@@ -15,6 +15,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Identity.Web;
 using Microsoft.Identity.Web.UI;
+using Microsoft.IdentityModel.Tokens;
 using Tailspin.Surveys.Data.DataModels;
 using Tailspin.Surveys.Security.Policy;
 using Tailspin.Surveys.Web.Security;
@@ -46,15 +47,6 @@ namespace Tailspin.Surveys.Web
             var configOptions = new SurveyAppConfiguration.ConfigurationOptions();
             Configuration.Bind(configOptions);
             
-            services.Configure<CookiePolicyOptions>(options =>
-            {
-                // This lambda determines whether user consent for non-essential cookies is needed for a given request.
-                options.CheckConsentNeeded = context => true;
-                options.MinimumSameSitePolicy = SameSiteMode.Unspecified;
-                // Handling SameSite cookie according to https://docs.microsoft.com/en-us/aspnet/core/security/samesite?view=aspnetcore-3.1
-                options.HandleSameSiteCookieCompatibility();
-            });
-
             services.AddAuthorization(options =>
             {
                 options.AddPolicy(PolicyNames.RequireSurveyCreator,
@@ -80,14 +72,22 @@ namespace Tailspin.Surveys.Web
 
             var openIdConnectEvents = new SurveyAuthenticationEvents(loggerFactory);
             services.AddAuthentication(OpenIdConnectDefaults.AuthenticationScheme)
-             .AddMicrosoftIdentityWebApp(
-                options =>
-                {
-                    Configuration.Bind("AzureAd", options);
-                    options.Events.OnTokenValidated += openIdConnectEvents.TokenValidated;
-                })
+                .AddMicrosoftIdentityWebApp(
+                    options =>
+                    {
+                        Configuration.Bind("AzureAd", options);
+                        options.SignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+                        options.TokenValidationParameters = new TokenValidationParameters { ValidateIssuer = false };
+                        options.Events.OnTokenValidated += openIdConnectEvents.TokenValidated;
+                    })
                .EnableTokenAcquisitionToCallDownstreamApi(configOptions.SurveyApi.Scope.Split(';'))
-               .AddInMemoryTokenCaches();
+               .AddDistributedTokenCaches();
+
+            services.AddStackExchangeRedisCache(options =>
+            {
+                options.Configuration = configOptions.Redis.Configuration;
+                options.InstanceName = "TokenCache";
+            });
 
             // Add Entity Framework services to the services container.
             services.AddEntityFrameworkSqlServer()
@@ -113,6 +113,7 @@ namespace Tailspin.Surveys.Web
             }).AddMicrosoftIdentityUI();
 
             services.AddRazorPages();
+            services.AddDatabaseDeveloperPageExceptionFilter();
         }
 
         // Configure is called after ConfigureServices is called.
@@ -126,7 +127,7 @@ namespace Tailspin.Surveys.Web
             if (env.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
-                app.UseDatabaseErrorPage();
+                app.UseMigrationsEndPoint();
             }
             else
             {

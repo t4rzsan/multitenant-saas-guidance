@@ -73,6 +73,14 @@ namespace Tailspin.Surveys.Web.Security
             {
                 identity.AddClaim(new Claim(ClaimTypes.Email, email));
             }
+            else {
+                var value = principal.FindFirstValue(ClaimTypes.Email, false);
+                if (value == null)
+                {
+                    value = ((System.Security.Claims.ClaimsIdentity)principal.Identity).Name;
+                    identity.AddClaim(new Claim(ClaimTypes.Email, value));
+                }
+            }
 
             var name = principal.GetDisplayNameValue();
             if (!string.IsNullOrWhiteSpace(name))

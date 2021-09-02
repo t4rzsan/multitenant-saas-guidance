@@ -33,7 +33,7 @@ namespace Tailspin.Surveys.Data.Migrations
 
                     b.HasIndex("SurveyId", "EmailAddress")
                         .IsUnique()
-                        .HasName("SurveyIdEmailAddressIndex");
+                        .HasDatabaseName("SurveyIdEmailAddressIndex");
 
                     b.ToTable("ContributorRequest");
                 });
@@ -112,7 +112,7 @@ namespace Tailspin.Surveys.Data.Migrations
 
                     b.HasIndex("IssuerValue")
                         .IsUnique()
-                        .HasName("IssuerValueIndex");
+                        .HasDatabaseName("IssuerValueIndex");
 
                     b.ToTable("Tenant");
                 });
@@ -145,7 +145,7 @@ namespace Tailspin.Surveys.Data.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("ObjectId")
-                        .HasName("UserObjectIdIndex");
+                        .HasDatabaseName("UserObjectIdIndex");
 
                     b.HasIndex("TenantId");
 
