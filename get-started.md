@@ -220,8 +220,13 @@ For more information about creating a Redis cache, see [Quickstart: Use Azure Ca
     ```json
     {
       "AzureAd": {
+	    "Instance": "https://login.microsoftonline.com/",
+        "Domain": "<domain>.onmicrosoft.com",
+        "TenantId": "common",
         "ClientId": "<Surveys application ID>",
         "ClientSecret": "<Surveys app client secret>",
+		"CallbackPath": "/signin-oidc",
+        "SignedOutCallbackPath ": "/signout-callback-oidc",
         "PostLogoutRedirectUri": "https://localhost:44300/",
         "WebApiResourceId": "<Surveys.WebAPI app ID URI>"
       },
@@ -233,6 +238,7 @@ For more information about creating a Redis cache, see [Quickstart: Use Azure Ca
 
     Replace the items shown in angle brackets, as follows:
 
+    - `AzureAd:Domain`: The AD primary domain.
     - `AzureAd:ClientId`: The application ID of the Surveys app.
     - `AzureAd:ClientSecret`: The key that you generated when you registered the Surveys application in Azure AD.
     - `AzureAd:WebApiResourceId`: The App ID URI that you specified when you created the Surveys.WebAPI application in Azure AD. It should have the form `https://<directory>.onmicrosoft.com/surveys.webapi`
@@ -324,10 +330,6 @@ Repeat the same steps to assign roles for the Survey.WebAPI application.
 Now go back to the app and sign in again. Click **My Surveys**. If the user is assigned to the SurveyAdmin or SurveyCreator role, you will see a **Create Survey** button, indicating that the user has permissions to create a new survey.
 
 ![My surveys](./images/running-the-app/screenshot3.png)
-
-## Optional: Enable Key Vault
-
-As a security best practice, you should never store application secrets such as connection strings in source control. To enable storing secrets in Key Vault, follow the steps [here](./key-vault.md).
 
 <!-- links -->
 
