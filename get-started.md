@@ -331,6 +331,10 @@ Now go back to the app and sign in again. Click **My Surveys**. If the user is a
 
 ![My surveys](./images/running-the-app/screenshot3.png)
 
+## Optional: Enable Key Vault
+
+As a security best practice, you should never store application secrets such as connection strings in source control. To enable storing secrets in Key Vault, follow the steps [here](./key-vault-secrets.md).
+
 <!-- links -->
 
 [portal]: https://portal.azure.com
@@ -340,4 +344,3 @@ Now go back to the app and sign in again. Click **My Surveys**. If the user is a
 [createhub]: https://ms.portal.azure.com/#create/hub
 [VS2017]: https://www.visualstudio.com/vs/
 [appregistrations]: https://ms.portal.azure.com/#blade/Microsoft_AAD_RegisteredApps/ApplicationsListBlade
-

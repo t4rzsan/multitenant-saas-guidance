@@ -70,15 +70,15 @@ namespace Tailspin.Surveys.Web
                     });
             });
 
-            var openIdConnectEvents = new SurveyAuthenticationEvents(loggerFactory);
             services.AddAuthentication(OpenIdConnectDefaults.AuthenticationScheme)
                 .AddMicrosoftIdentityWebApp(
                     options =>
                     {
                         Configuration.Bind("AzureAd", options);
+                        options.Events = new SurveyAuthenticationEvents(loggerFactory);
                         options.SignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
                         options.TokenValidationParameters = new TokenValidationParameters { ValidateIssuer = false };
-                        options.Events.OnTokenValidated += openIdConnectEvents.TokenValidated;
+                        options.Events.OnTokenValidated += options.Events.TokenValidated;
                     })
                .EnableTokenAcquisitionToCallDownstreamApi(configOptions.SurveyApi.Scope.Split(';'))
                .AddDistributedTokenCaches();
