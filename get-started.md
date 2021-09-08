@@ -333,7 +333,7 @@ Now go back to the app and sign in again. Click **My Surveys**. If the user is a
 
 ## Optional: Enable Key Vault
 
-As a security best practice, you should never store application secrets such as connection strings in source control. To enable storing secrets in Key Vault, follow the steps [here](./key-vault-secrets.md).
+As a security best practice, you should never store application secrets such as connection strings in source control. To enable storing secrets in Key Vault, follow the steps [here](./key-vault.md).
 
 <!-- links -->
 
