@@ -77,10 +77,9 @@ namespace Tailspin.Surveys.Web
                         Configuration.Bind("AzureAd", options);
                         options.Events = new SurveyAuthenticationEvents(loggerFactory);
                         options.SignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
-                        options.TokenValidationParameters = new TokenValidationParameters { ValidateIssuer = false };
                         options.Events.OnTokenValidated += options.Events.TokenValidated;
                     })
-               .EnableTokenAcquisitionToCallDownstreamApi(configOptions.SurveyApi.Scopes.Split(' '))
+               .EnableTokenAcquisitionToCallDownstreamApi()
                .AddDownstreamWebApi(configOptions.SurveyApi.Name, Configuration.GetSection("SurveyApi"))
                .AddDistributedTokenCaches();
 

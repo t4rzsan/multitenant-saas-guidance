@@ -28,7 +28,7 @@ namespace Tailspin.Surveys.Web.Services
         private readonly IDownstreamWebApi downstreamWebApi;
         private readonly string _serviceName;
 
-        public QuestionService(IHttpContextAccessor httpContextAccessor, IDownstreamWebApi downstreamWebApi, IOptions<ConfigurationOptions> configOptions)
+        public QuestionService(IDownstreamWebApi downstreamWebApi, IOptions<ConfigurationOptions> configOptions)
         {
             this.downstreamWebApi = downstreamWebApi;
             _serviceName = configOptions.Value.SurveyApi.Name;
