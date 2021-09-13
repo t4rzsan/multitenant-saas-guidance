@@ -14,14 +14,12 @@ namespace Tailspin.Surveys.Web.Configuration
         {
             Data = new DatabaseOptions();
             Redis = new RedisOptions();
-            AppSettings = new AppSettingsOptions();
             KeyVault = new KeyVaultOptions();
             AzureAd = new AzureAdOptions();
         }
 
         public DatabaseOptions Data { get; set; }
         public AzureAdOptions AzureAd { get; set; }
-        public AppSettingsOptions AppSettings { get; set; }
         public RedisOptions Redis { get; set; }
         public KeyVaultOptions KeyVault { get; set; }
         public SurveyApiOptions SurveyApi { get; set; }

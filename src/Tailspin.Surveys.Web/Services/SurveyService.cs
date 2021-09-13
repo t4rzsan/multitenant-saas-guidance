@@ -3,12 +3,12 @@
 
 using System.Collections.Generic;
 using System.Net.Http;
-using System.Threading;
+using System.Text;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;
 using Microsoft.Identity.Web;
-using Tailspin.Surveys.Common;
+using Newtonsoft.Json;
 using Tailspin.Surveys.Data.DataModels;
 using Tailspin.Surveys.Data.DTOs;
 using Tailspin.Surveys.Web.Configuration;
@@ -27,41 +27,49 @@ namespace Tailspin.Surveys.Web.Services
     /// </summary>
     public class SurveyService : ISurveyService
     {
-        private readonly ITokenAcquisition _tokenAcquisition;
+        private readonly string _serviceName;
+        private readonly IDownstreamWebApi _downstreamWebApi;
         private readonly HttpClient _httpClient;
-        private readonly CancellationToken _cancellationToken;
-        private readonly string[] _scopes;
 
-        public SurveyService(HttpClientService factory, IHttpContextAccessor httpContextAccessor, ITokenAcquisition tokenAcquisition, IOptions<ConfigurationOptions> configOptions)
+
+        public SurveyService(HttpClientService factory, IDownstreamWebApi downstreamWebApi, IOptions<ConfigurationOptions> configOptions)
         {
-            _tokenAcquisition = tokenAcquisition;
             _httpClient = factory.GetHttpClient();
-            _cancellationToken = httpContextAccessor?.HttpContext?.RequestAborted ?? CancellationToken.None;
-            _scopes =  configOptions.Value.SurveyApi.Scope.Split(';');
+            _serviceName = configOptions.Value.SurveyApi.Name;
+            _downstreamWebApi = downstreamWebApi;
         }
 
         public async Task<ApiResult<SurveyDTO>> GetSurveyAsync(int id)
         {
             var path = $"/surveys/{id}";
-            var response =
-                await _httpClient.SendRequestWithBearerTokenAsync(HttpMethod.Get, path, null,
-                        await _tokenAcquisition.GetAccessTokenForUserAsync(_scopes), _cancellationToken);
+            var response = await _downstreamWebApi.CallWebApiForUserAsync(_serviceName,
+                    options =>
+                    {
+                        options.HttpMethod = HttpMethod.Get;
+                        options.RelativePath = $"surveys/{id}";
+                    });
             return await ApiResult<SurveyDTO>.FromResponseAsync(response).ConfigureAwait(false);
         }
 
         public async Task<ApiResult<UserSurveysDTO>> GetSurveysForUserAsync(int userId)
         {
-            var path = $"/users/{userId}/surveys";
-            var response = await _httpClient.SendRequestWithBearerTokenAsync(HttpMethod.Get, path, null,
-                        await _tokenAcquisition.GetAccessTokenForUserAsync(_scopes), _cancellationToken);
+            var response = await _downstreamWebApi.CallWebApiForUserAsync(_serviceName,
+                    options =>
+                    {
+                        options.HttpMethod = HttpMethod.Get;
+                        options.RelativePath = $"users/{userId}/surveys";
+                    });
             return await ApiResult<UserSurveysDTO>.FromResponseAsync(response).ConfigureAwait(false);
         }
 
         public async Task<ApiResult<TenantSurveysDTO>> GetSurveysForTenantAsync(int tenantId)
         {
-            var path = $"/tenants/{tenantId}/surveys";
-            var response = await _httpClient.SendRequestWithBearerTokenAsync(HttpMethod.Get, path, null,
-                        await _tokenAcquisition.GetAccessTokenForUserAsync(_scopes), _cancellationToken);
+            var response = await _downstreamWebApi.CallWebApiForUserAsync(_serviceName,
+                   options =>
+                   {
+                       options.HttpMethod = HttpMethod.Get;
+                       options.RelativePath = $"tenants/{tenantId}/surveys";
+                   });
             return await ApiResult<TenantSurveysDTO>.FromResponseAsync(response).ConfigureAwait(false);
         }
         public async Task<ApiResult<IEnumerable<SurveyDTO>>> GetPublishedSurveysAsync()
@@ -74,63 +82,93 @@ namespace Tailspin.Surveys.Web.Services
 
         public async Task<ApiResult<SurveyDTO>> CreateSurveyAsync(SurveyDTO survey)
         {
-            var path = "/surveys";
-            var response = await _httpClient.SendRequestWithBearerTokenAsync(HttpMethod.Post, path, survey,
-                         await _tokenAcquisition.GetAccessTokenForUserAsync(_scopes), _cancellationToken);
+            string jsonSurvey = JsonConvert.SerializeObject(survey);
+            StringContent content = new StringContent(jsonSurvey, Encoding.UTF8, "application/json");
+            var response = await _downstreamWebApi.CallWebApiForUserAsync(_serviceName,
+                    options =>
+                    {
+                        options.HttpMethod = HttpMethod.Post;
+                        options.RelativePath = "surveys";
+                    }, null, content);
             return await ApiResult<SurveyDTO>.FromResponseAsync(response).ConfigureAwait(false);
         }
 
         public async Task<ApiResult<SurveyDTO>> UpdateSurveyAsync(SurveyDTO survey)
         {
-            var path = $"/surveys/{survey.Id}";
-            var response = await _httpClient.SendRequestWithBearerTokenAsync(HttpMethod.Put, path, survey,
-                         await _tokenAcquisition.GetAccessTokenForUserAsync(_scopes), _cancellationToken);
+            string jsonSurvey = JsonConvert.SerializeObject(survey);
+            StringContent content = new StringContent(jsonSurvey, Encoding.UTF8, "application/json");
+            var response = await _downstreamWebApi.CallWebApiForUserAsync(_serviceName,
+                    options =>
+                    {
+                        options.HttpMethod = HttpMethod.Put;
+                        options.RelativePath = $"surveys/{survey.Id}";
+                    }, null, content);
             return await ApiResult<SurveyDTO>.FromResponseAsync(response).ConfigureAwait(false);
         }
 
         public async Task<ApiResult<SurveyDTO>> DeleteSurveyAsync(int id)
         {
-            var path = $"/surveys/{id}";
-            var response = await _httpClient.SendRequestWithBearerTokenAsync(HttpMethod.Delete, path, null,
-                        await _tokenAcquisition.GetAccessTokenForUserAsync(_scopes), _cancellationToken);
+            var response = await _downstreamWebApi.CallWebApiForUserAsync(_serviceName,
+                    options =>
+                    {
+                        options.HttpMethod = HttpMethod.Delete;
+                        options.RelativePath = $"surveys/{id}";
+                    });
             return await ApiResult<SurveyDTO>.FromResponseAsync(response).ConfigureAwait(false);
         }
         public async Task<ApiResult<SurveyDTO>> PublishSurveyAsync(int id)
         {
-            var path = $"/surveys/{id}/publish";
-            var response = await _httpClient.SendRequestWithBearerTokenAsync(HttpMethod.Put, path, null,
-                         await _tokenAcquisition.GetAccessTokenForUserAsync(_scopes), _cancellationToken);
+            var response = await _downstreamWebApi.CallWebApiForUserAsync(_serviceName,
+                   options =>
+                   {
+                       options.HttpMethod = HttpMethod.Put;
+                       options.RelativePath = $"surveys/{id}/publish";
+                   });
             return await ApiResult<SurveyDTO>.FromResponseAsync(response).ConfigureAwait(false);
         }
         public async Task<ApiResult<SurveyDTO>> UnPublishSurveyAsync(int id)
         {
-            var path = $"/surveys/{id}/unpublish";
-            var response = await _httpClient.SendRequestWithBearerTokenAsync(HttpMethod.Put, path, null,
-                         await _tokenAcquisition.GetAccessTokenForUserAsync(_scopes), _cancellationToken);
+            var response = await _downstreamWebApi.CallWebApiForUserAsync(_serviceName,
+                  options =>
+                  {
+                      options.HttpMethod = HttpMethod.Put;
+                      options.RelativePath = $"surveys/{id}/unpublish";
+                  });
             return await ApiResult<SurveyDTO>.FromResponseAsync(response).ConfigureAwait(false);
         }
 
         public async Task<ApiResult<ContributorsDTO>> GetSurveyContributorsAsync(int id)
         {
-            var path = $"/surveys/{id}/contributors";
-            var response = await _httpClient.SendRequestWithBearerTokenAsync(HttpMethod.Get, path, null,
-                         await _tokenAcquisition.GetAccessTokenForUserAsync(_scopes), _cancellationToken);
+            var response = await _downstreamWebApi.CallWebApiForUserAsync(_serviceName,
+                options =>
+                {
+                    options.HttpMethod = HttpMethod.Get;
+                    options.RelativePath = $"surveys/{id}/contributors";
+                });
             return await ApiResult<ContributorsDTO>.FromResponseAsync(response).ConfigureAwait(false);
         }
 
         public async Task<ApiResult> ProcessPendingContributorRequestsAsync()
         {
-            var path = $"/surveys/processpendingcontributorrequests";
-            var response = await _httpClient.SendRequestWithBearerTokenAsync(HttpMethod.Post, path, null,
-                         await _tokenAcquisition.GetAccessTokenForUserAsync(_scopes), _cancellationToken);
+            var response = await _downstreamWebApi.CallWebApiForUserAsync(_serviceName,
+                  options =>
+                  {
+                      options.HttpMethod = HttpMethod.Post;
+                      options.RelativePath = "/surveys/processpendingcontributorrequests";
+                  });
             return new ApiResult { Response = response };
         }
 
         public async Task<ApiResult> AddContributorRequestAsync(ContributorRequest contributorRequest)
         {
-            var path = $"/surveys/{contributorRequest.SurveyId}/contributorrequests";
-            var response = await _httpClient.SendRequestWithBearerTokenAsync(HttpMethod.Post, path, contributorRequest,
-                         await _tokenAcquisition.GetAccessTokenForUserAsync(_scopes), _cancellationToken);
+            string jsonContributor = JsonConvert.SerializeObject(contributorRequest);
+            StringContent content = new StringContent(jsonContributor, Encoding.UTF8, "application/json");
+            var response = await _downstreamWebApi.CallWebApiForUserAsync(_serviceName,
+                    options =>
+                    {
+                        options.HttpMethod = HttpMethod.Post;
+                        options.RelativePath = $"/surveys/{contributorRequest.SurveyId}/contributorrequests";
+                    }, null, content);
             return new ApiResult { Response = response };
         }
     }

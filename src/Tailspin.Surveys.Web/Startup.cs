@@ -46,7 +46,7 @@ namespace Tailspin.Surveys.Web
             services.Configure<SurveyAppConfiguration.ConfigurationOptions>(options => Configuration.Bind(options));
             var configOptions = new SurveyAppConfiguration.ConfigurationOptions();
             Configuration.Bind(configOptions);
-            
+
             services.AddAuthorization(options =>
             {
                 options.AddPolicy(PolicyNames.RequireSurveyCreator,
@@ -80,7 +80,8 @@ namespace Tailspin.Surveys.Web
                         options.TokenValidationParameters = new TokenValidationParameters { ValidateIssuer = false };
                         options.Events.OnTokenValidated += options.Events.TokenValidated;
                     })
-               .EnableTokenAcquisitionToCallDownstreamApi(configOptions.SurveyApi.Scope.Split(';'))
+               .EnableTokenAcquisitionToCallDownstreamApi(configOptions.SurveyApi.Scopes.Split(' '))
+               .AddDownstreamWebApi(configOptions.SurveyApi.Name, Configuration.GetSection("SurveyApi"))
                .AddDistributedTokenCaches();
 
             services.AddStackExchangeRedisCache(options =>
@@ -92,10 +93,10 @@ namespace Tailspin.Surveys.Web
             // Add Entity Framework services to the services container.
             services.AddEntityFrameworkSqlServer()
                    .AddDbContext<ApplicationDbContext>(options => options.UseSqlServer(configOptions.Data.SurveysConnectionString), ServiceLifetime.Transient);
-
+        
             // Register application services.
             services.AddSingleton<HttpClientService>();
-
+            
             // Comment out the following line if you are using client certificates.
             services.AddTransient<ISurveyService, SurveyService>();
             services.AddTransient<IQuestionService, QuestionService>();
@@ -103,7 +104,7 @@ namespace Tailspin.Surveys.Web
             services.AddTransient<TenantManager, TenantManager>();
             services.AddTransient<UserManager, UserManager>();
             services.AddHttpContextAccessor();
-        
+
             services.AddControllersWithViews(options =>
             {
                 var policy = new AuthorizationPolicyBuilder()
