@@ -75,9 +75,9 @@ namespace Tailspin.Surveys.Web.Security
             }
             else {
                 var value = principal.FindFirstValue(ClaimTypes.Email, false);
-                if (value == null)
+                if (string.IsNullOrWhiteSpace(value ))
                 {
-                    value = ((System.Security.Claims.ClaimsIdentity)principal.Identity).Name;
+                    value = identity.FindFirst("preferred_username").Value;
                     identity.AddClaim(new Claim(ClaimTypes.Email, value));
                 }
             }
