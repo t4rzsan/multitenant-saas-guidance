@@ -1,6 +1,7 @@
 # Setting up Key Vault in the Surveys app
 
 This doc shows how to store application secrets/certificate for the Surveys app in Azure Key Vault.
+It is good if every secret is kept on Key Vault, for example, database connection string. After executing option 1, you can add all the secret that you need on key vault.
 
 Prerequisites:
 
@@ -24,7 +25,7 @@ Prerequisites:
     - Running on App Service, the Object ID. The Object ID is shown in the Azure portal on the Identity panel of the App Service.
   - Save
 
-## Option 1: Use client secret on key vault
+## Option 1: Use client secret on key vault (And you can add another application secrets)
 
 ### Move the ClientSecret to key vault
 
@@ -90,35 +91,17 @@ ClientCertificates and ClientSecret are mutually exclusive. We need to start del
 
 ### Change code
 
-On Tailspin.Surveys.Web, Program.cs, the following code need to uncomment
+On Tailspin.Surveys.Web,  _Manage User Secret_ Visual Studio option, add the ClientCertificates under AzureAd, you should get something [like](https://github.com/AzureAD/microsoft-identity-web/wiki/Certificates#describing-client-certificates-to-use-by-configuration) 
 
 ```dotnetcli
-        .ConfigureAppConfiguration((context, config) =>
-                {
-                        var builtConfig = config.Build();
-                        var secretClient = new SecretClient(
-                            new Uri($"https://{builtConfig["KeyVaultName"]}.vault.azure.net/"),
-                            new DefaultAzureCredential());
-                        config.AddAzureKeyVault(secretClient, new KeyVaultSecretManager());
-                });
+   "ClientCertificates": [
+      {
+        "SourceType": "KeyVault",
+        "KeyVaultUrl": "https://msidentitywebsamples.vault.azure.net",
+        "KeyVaultCertificateName": "MicrosoftIdentityCert"
+      }
+     ]
 ```
-
-On Tailspin.Surveys.Web, Startup.cs, the following code need to uncomment
-
-```dotnetcli
-  options.ClientCertificates = new CertificateDescription[] {
-         CertificateDescription.FromKeyVault($"https://{Configuration["KeyVaultName"]}.vault.azure.net",
-                                          "MicrosoftIdentityCert")
-       };
-```
-
-On the app setting we need to configure the following value
-
-```dotnetcli
- "KeyVaultName"
-```
-
 ### Execute
 
-The app must continue working on the same way, but now you are using a certificate from Key Vault by Manage Identity.  
-You need to use the correct account on Visual Studio to have access by Manage Identity to Key Vault
+The app must continue working on the same way, but now you are using a certificate from Key Vault.

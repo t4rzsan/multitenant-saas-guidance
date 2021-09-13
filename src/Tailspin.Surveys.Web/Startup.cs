@@ -75,10 +75,6 @@ namespace Tailspin.Surveys.Web
                     options =>
                     {
                         Configuration.Bind("AzureAd", options);
-                        //options.ClientCertificates = new CertificateDescription[] {
-                        //     CertificateDescription.FromKeyVault($"https://{Configuration["KeyVaultName"]}.vault.azure.net",
-                        //                                         "MicrosoftIdentityCert")
-                        //    };
                         options.Events = new SurveyAuthenticationEvents(loggerFactory);
                         options.SignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
                         options.TokenValidationParameters = new TokenValidationParameters { ValidateIssuer = false };
