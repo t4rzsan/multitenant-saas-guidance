@@ -1,17 +1,13 @@
 ﻿// Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-using System.Net;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Tailspin.Surveys.Data.DTOs;
 using Tailspin.Surveys.Web.Security;
 using Tailspin.Surveys.Web.Services;
-using Microsoft.AspNetCore.Authentication.OpenIdConnect;
-using Microsoft.AspNetCore.Authentication.Cookies;
-using Tailspin.Surveys.Web.Models;
-using Microsoft.AspNetCore.Authentication;
 using Microsoft.Identity.Web;
+using System.Net.Http;
 
 namespace Tailspin.Surveys.Web.Controllers
 {
@@ -23,12 +19,10 @@ namespace Tailspin.Surveys.Web.Controllers
     public class QuestionController : Controller
     {
         private readonly IQuestionService _questionService;
-        private readonly SignInManager _signInManager;
 
         public QuestionController(IQuestionService questionsClient, SignInManager signInManager)
         {
             _questionService = questionsClient;
-            _signInManager = signInManager;
         }
 
         /// <summary>
@@ -56,24 +50,7 @@ namespace Tailspin.Surveys.Web.Controllers
                 if (ModelState.IsValid)
                 {
                     var result = await _questionService.CreateQuestionAsync(question);
-                    if (result.Succeeded)
-                    {
-                        return RedirectToAction("Edit", "Survey", new { id = question.SurveyId });
-                    }
-                    else
-                    {
-                        ModelState.AddModelError(string.Empty, $"Unable to create question. (HTTP {result.StatusCode})");
-                        switch (result.StatusCode)
-                        {
-                            case (int)HttpStatusCode.Unauthorized:
-                                return ReAuthenticateUser();
-                            case (int)HttpStatusCode.Forbidden:
-                                ViewBag.Forbidden = true;
-                                return View(question);
-                            default:
-                                return View(question);
-                        }
-                    }
+                    return RedirectToAction("Edit", "Survey", new { id = question.SurveyId });
                 }
                 else
                 {
@@ -81,9 +58,9 @@ namespace Tailspin.Surveys.Web.Controllers
                     return View(question);
                 }
             }
-            catch (AuthenticationException)
+            catch (HttpRequestException requestEx) when ("Microsoft.Identity.Web".Equals(requestEx.Source) && "403 Forbidden".Equals(requestEx.Message?.Trim()))
             {
-                return ReAuthenticateUser();
+                return ForbidenAccessToTheQuestion(question);
             }
             catch
             {
@@ -104,19 +81,15 @@ namespace Tailspin.Surveys.Web.Controllers
             try
             {
                 var result = await _questionService.GetQuestionAsync(id);
-                if (result.Succeeded)
-                {
-                    return View(result.Item);
-                }
-
-                var errorResult = CheckStatusCode(result);
-                if (errorResult != null) return errorResult;
-
-                ViewBag.Message = "Unexpected Error";
+                return View(result);
             }
-            catch (AuthenticationException)
+            catch (HttpRequestException requestEx) when ("Microsoft.Identity.Web".Equals(requestEx.Source) && "403 Forbidden".Equals(requestEx.Message?.Trim()))
             {
-                return ReAuthenticateUser();
+                return ForbidenAccessToTheQuestion();
+            }
+            catch (HttpRequestException requestEx) when ("Microsoft.Identity.Web".Equals(requestEx.Source) && "404 NotFound".Equals(requestEx.Message?.Trim()))
+            {
+                return QuestionNotFound();
             }
             catch
             {
@@ -139,24 +112,7 @@ namespace Tailspin.Surveys.Web.Controllers
                 if (ModelState.IsValid)
                 {
                     var result = await _questionService.UpdateQuestionAsync(question);
-                    if (result.Succeeded)
-                    {
-                        return RedirectToAction("Edit", "Survey", new { id = question.SurveyId });
-                    }
-                    else
-                    {
-                        ModelState.AddModelError(string.Empty, $"Unable to edit question. (HTTP {result.StatusCode})");
-                        switch (result.StatusCode)
-                        {
-                            case (int)HttpStatusCode.Unauthorized:
-                                return ReAuthenticateUser();
-                            case (int)HttpStatusCode.Forbidden:
-                                ViewBag.Forbidden = true;
-                                return View(question);
-                            default:
-                                return View(question);
-                        }
-                    }
+                    return RedirectToAction("Edit", "Survey", new { id = question.SurveyId });
                 }
                 else
                 {
@@ -164,9 +120,13 @@ namespace Tailspin.Surveys.Web.Controllers
                     return View(question);
                 }
             }
-            catch (AuthenticationException)
+            catch (HttpRequestException requestEx) when ("Microsoft.Identity.Web".Equals(requestEx.Source) && "403 Forbidden".Equals(requestEx.Message?.Trim()))
             {
-                return ReAuthenticateUser();
+                return ForbidenAccessToTheQuestion(question);
+            }
+            catch (HttpRequestException requestEx) when ("Microsoft.Identity.Web".Equals(requestEx.Source) && "404 NotFound".Equals(requestEx.Message?.Trim()))
+            {
+                return QuestionNotFound();
             }
             catch
             {
@@ -187,19 +147,15 @@ namespace Tailspin.Surveys.Web.Controllers
             try
             {
                 var result = await _questionService.GetQuestionAsync(id);
-                if (result.Succeeded)
-                {
-                    return View("Delete", result.Item);
-                }
-
-                var errorResult = CheckStatusCode(result);
-                if (errorResult != null) return errorResult;
-
-                ViewBag.Message = "Unexpected Error";
+                return View("Delete", result);
             }
-            catch (AuthenticationException)
+            catch (HttpRequestException requestEx) when ("Microsoft.Identity.Web".Equals(requestEx.Source) && "403 Forbidden".Equals(requestEx.Message?.Trim()))
             {
-                return ReAuthenticateUser();
+                return ForbidenAccessToTheQuestion();
+            }
+            catch (HttpRequestException requestEx) when ("Microsoft.Identity.Web".Equals(requestEx.Source) && "404 NotFound".Equals(requestEx.Message?.Trim()))
+            {
+                return QuestionNotFound();
             }
             catch
             {
@@ -219,29 +175,16 @@ namespace Tailspin.Surveys.Web.Controllers
         {
             try
             {
-                var result = await _questionService.DeleteQuestionAsync(question.Id);
-                if (result.Succeeded)
-                {
-                    return RedirectToAction("Edit", "Survey", new { id = question.SurveyId });
-                }
-                else
-                {
-                    ModelState.AddModelError(string.Empty, $"Unable to delete question. (HTTP {result.StatusCode})");
-                    switch (result.StatusCode)
-                    {
-                        case (int)HttpStatusCode.Unauthorized:
-                            return ReAuthenticateUser();
-                        case (int)HttpStatusCode.Forbidden:
-                            ViewBag.Forbidden = true;
-                            return View(question);
-                        default:
-                            return View(question);
-                    }
-                }
+                await _questionService.DeleteQuestionAsync(question.Id);
+                return RedirectToAction("Edit", "Survey", new { id = question.SurveyId });
             }
-            catch (AuthenticationException)
+            catch (HttpRequestException requestEx) when ("Microsoft.Identity.Web".Equals(requestEx.Source) && "403 Forbidden".Equals(requestEx.Message?.Trim()))
             {
-                return ReAuthenticateUser();
+                return ForbidenAccessToTheQuestion(question);
+            }
+            catch (HttpRequestException requestEx) when ("Microsoft.Identity.Web".Equals(requestEx.Source) && "404 NotFound".Equals(requestEx.Message?.Trim()))
+            {
+                return QuestionNotFound();
             }
             catch
             {
@@ -251,37 +194,24 @@ namespace Tailspin.Surveys.Web.Controllers
             return View("~/Views/Shared/Error.cshtml");
         }
 
-        private IActionResult CheckStatusCode(ApiResult result)
+        private IActionResult QuestionNotFound()
         {
-            if (result.StatusCode == (int)HttpStatusCode.Unauthorized)
-            {
-                return ReAuthenticateUser();
-            }
-
-            if (result.StatusCode == (int)HttpStatusCode.Forbidden)
-            {
-                // Redirects user to Forbidden page
-                return new ChallengeResult(CookieAuthenticationDefaults.AuthenticationScheme);
-            }
-
-            if (result.StatusCode == (int)HttpStatusCode.NotFound)
-            {
-                ModelState.AddModelError(string.Empty, "The survey can not be found");
-                ViewBag.Message = "The survey can not be found";
-                return View("~/Views/Shared/Error.cshtml");
-            }
-
-            return null;
+            ModelState.AddModelError(string.Empty, $"The question can not be found");
+            ViewBag.Message = $"The quetion can not be found";
+            return View("~/Views/Shared/Error.cshtml");
         }
 
-        private IActionResult ReAuthenticateUser()
+        private IActionResult ForbidenAccessToTheQuestion(QuestionDTO question)
         {
-            return new ChallengeResult(OpenIdConnectDefaults.AuthenticationScheme,
-                new AuthenticationProperties
-                {
-                    IsPersistent = true,
-                    RedirectUri = Url.Action("SignInCallback", "Account")
-                });
+            ViewBag.Forbidden = true;
+            return View(question);
+        }
+
+        private IActionResult ForbidenAccessToTheQuestion()
+        {
+            ModelState.AddModelError(string.Empty, $"Forbidden Access to the question");
+            ViewBag.Message = $"Forbidden Access to the question";
+            return View("~/Views/Shared/Error.cshtml");
         }
     }
 }

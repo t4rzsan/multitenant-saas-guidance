@@ -7,7 +7,6 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Abstractions;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -48,25 +47,20 @@ namespace MultiTentantSurveyAppTests
         [Fact]
         public async Task Index_GetsUserSurveys()
         {
-            var apiResultUserSurveys = A.Fake<ApiResult<UserSurveysDTO>>();
-            A.CallTo(() => apiResultUserSurveys.Succeeded).Returns(true);
-            A.CallTo(() => apiResultUserSurveys.Item).Returns(new UserSurveysDTO());
-            A.CallTo(() => _surveyService.GetSurveysForUserAsync(54321)).Returns(Task.FromResult(apiResultUserSurveys));
+            var resultUserSurveys = A.Fake<UserSurveysDTO>();
+            A.CallTo(() => _surveyService.GetSurveysForUserAsync(54321)).Returns(Task.FromResult(resultUserSurveys));
 
             _target.ControllerContext = CreateActionContextWithUserPrincipal("54321", "unregistereduser@contoso.com");
             var result = await _target.Index();
             var view = (ViewResult)result;
-            Assert.Same(view.ViewData.Model, apiResultUserSurveys.Item);
+            Assert.Same(view.ViewData.Model, resultUserSurveys);
         }
 
         [Fact]
         public async Task Contributors_ShowsContributorsForSurvey()
         {
             var contributors = new ContributorsDTO();
-            var apiResult = A.Fake<ApiResult<ContributorsDTO>>();
-            A.CallTo(() => apiResult.Item).Returns(contributors);
-            A.CallTo(() => apiResult.Succeeded).Returns(true);
-            A.CallTo(() => _surveyService.GetSurveyContributorsAsync(A<int>.Ignored)).Returns(apiResult);
+            A.CallTo(() => _surveyService.GetSurveyContributorsAsync(A<int>.Ignored)).Returns(Task.FromResult(contributors));
 
             var result = await _target.Contributors(12345);
             var viewResult = Assert.IsType<ViewResult>(result);
@@ -79,9 +73,8 @@ namespace MultiTentantSurveyAppTests
         {
             var contributorRequestViewModel = new SurveyContributorRequestViewModel { SurveyId = 123, EmailAddress = "unregistereduser@contoso.com" };
 
-            var apiResult = A.Fake<ApiResult>();
-            var invitations = new List<ContributorRequest>();
-            A.CallTo(() => _surveyService.AddContributorRequestAsync(A<ContributorRequest>.Ignored)).Invokes((ContributorRequest r) => invitations.Add(r)).Returns(apiResult);
+             var invitations = new List<ContributorRequest>();
+            A.CallTo(() => _surveyService.AddContributorRequestAsync(A<ContributorRequest>.Ignored)).Invokes((ContributorRequest r) => invitations.Add(r)).Returns(Task.CompletedTask);
 
             // RequestContributor looks for existing contributors
             var contributorsDto = new ContributorsDTO
@@ -90,11 +83,7 @@ namespace MultiTentantSurveyAppTests
                 Requests = new List<ContributorRequest>()
             };
 
-            var apiResult2 = A.Fake<ApiResult<ContributorsDTO>>();
-            A.CallTo(() => apiResult2.Succeeded).Returns(true);
-            A.CallTo(() => apiResult2.Item).Returns(contributorsDto);
-
-            A.CallTo(() => _surveyService.GetSurveyContributorsAsync(A<int>.Ignored)).Returns(Task.FromResult(apiResult2));
+            A.CallTo(() => _surveyService.GetSurveyContributorsAsync(A<int>.Ignored)).Returns(Task.FromResult(contributorsDto));
 
             var result = await _target.RequestContributor(contributorRequestViewModel);
 

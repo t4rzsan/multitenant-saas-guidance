@@ -5,7 +5,6 @@ using System.Collections.Generic;
 using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
-using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;
 using Microsoft.Identity.Web;
 using Newtonsoft.Json;
@@ -39,38 +38,34 @@ namespace Tailspin.Surveys.Web.Services
             _downstreamWebApi = downstreamWebApi;
         }
 
-        public async Task<ApiResult<SurveyDTO>> GetSurveyAsync(int id)
+        public async Task<SurveyDTO> GetSurveyAsync(int id)
         {
-            var path = $"/surveys/{id}";
-            var response = await _downstreamWebApi.CallWebApiForUserAsync(_serviceName,
+            return await _downstreamWebApi.CallWebApiForUserAsync<SurveyDTO>(_serviceName,
                     options =>
                     {
                         options.HttpMethod = HttpMethod.Get;
                         options.RelativePath = $"surveys/{id}";
                     });
-            return await ApiResult<SurveyDTO>.FromResponseAsync(response).ConfigureAwait(false);
         }
 
-        public async Task<ApiResult<UserSurveysDTO>> GetSurveysForUserAsync(int userId)
+        public async Task<UserSurveysDTO> GetSurveysForUserAsync(int userId)
         {
-            var response = await _downstreamWebApi.CallWebApiForUserAsync(_serviceName,
+            return await _downstreamWebApi.CallWebApiForUserAsync<UserSurveysDTO>(_serviceName,
                     options =>
                     {
                         options.HttpMethod = HttpMethod.Get;
                         options.RelativePath = $"users/{userId}/surveys";
                     });
-            return await ApiResult<UserSurveysDTO>.FromResponseAsync(response).ConfigureAwait(false);
         }
 
-        public async Task<ApiResult<TenantSurveysDTO>> GetSurveysForTenantAsync(int tenantId)
+        public async Task<TenantSurveysDTO> GetSurveysForTenantAsync(int tenantId)
         {
-            var response = await _downstreamWebApi.CallWebApiForUserAsync(_serviceName,
+            return await _downstreamWebApi.CallWebApiForUserAsync<TenantSurveysDTO>(_serviceName,
                    options =>
                    {
                        options.HttpMethod = HttpMethod.Get;
                        options.RelativePath = $"tenants/{tenantId}/surveys";
                    });
-            return await ApiResult<TenantSurveysDTO>.FromResponseAsync(response).ConfigureAwait(false);
         }
         public async Task<ApiResult<IEnumerable<SurveyDTO>>> GetPublishedSurveysAsync()
         {
@@ -80,96 +75,69 @@ namespace Tailspin.Surveys.Web.Services
             return await ApiResult<IEnumerable<SurveyDTO>>.FromResponseAsync(response).ConfigureAwait(false);
         }
 
-        public async Task<ApiResult<SurveyDTO>> CreateSurveyAsync(SurveyDTO survey)
+        public async Task<SurveyDTO> CreateSurveyAsync(SurveyDTO survey)
         {
-            string jsonSurvey = JsonConvert.SerializeObject(survey);
-            StringContent content = new StringContent(jsonSurvey, Encoding.UTF8, "application/json");
-            var response = await _downstreamWebApi.CallWebApiForUserAsync(_serviceName,
-                    options =>
-                    {
-                        options.HttpMethod = HttpMethod.Post;
-                        options.RelativePath = "surveys";
-                    }, null, content);
-            return await ApiResult<SurveyDTO>.FromResponseAsync(response).ConfigureAwait(false);
+            return await _downstreamWebApi.PostForUserAsync<SurveyDTO, SurveyDTO>(_serviceName, "surveys", survey);
         }
 
-        public async Task<ApiResult<SurveyDTO>> UpdateSurveyAsync(SurveyDTO survey)
+        public async Task<SurveyDTO> UpdateSurveyAsync(SurveyDTO survey)
         {
-            string jsonSurvey = JsonConvert.SerializeObject(survey);
-            StringContent content = new StringContent(jsonSurvey, Encoding.UTF8, "application/json");
-            var response = await _downstreamWebApi.CallWebApiForUserAsync(_serviceName,
-                    options =>
-                    {
-                        options.HttpMethod = HttpMethod.Put;
-                        options.RelativePath = $"surveys/{survey.Id}";
-                    }, null, content);
-            return await ApiResult<SurveyDTO>.FromResponseAsync(response).ConfigureAwait(false);
+            return await _downstreamWebApi.PutForUserAsync<SurveyDTO, SurveyDTO>(_serviceName, $"surveys/{survey.Id}", survey);
         }
 
-        public async Task<ApiResult<SurveyDTO>> DeleteSurveyAsync(int id)
+        public async Task<SurveyDTO> DeleteSurveyAsync(int id)
         {
-            var response = await _downstreamWebApi.CallWebApiForUserAsync(_serviceName,
+            return await _downstreamWebApi.CallWebApiForUserAsync<SurveyDTO>(_serviceName,
                     options =>
                     {
                         options.HttpMethod = HttpMethod.Delete;
                         options.RelativePath = $"surveys/{id}";
                     });
-            return await ApiResult<SurveyDTO>.FromResponseAsync(response).ConfigureAwait(false);
         }
-        public async Task<ApiResult<SurveyDTO>> PublishSurveyAsync(int id)
+        public async Task<SurveyDTO> PublishSurveyAsync(int id)
         {
-            var response = await _downstreamWebApi.CallWebApiForUserAsync(_serviceName,
-                   options =>
-                   {
-                       options.HttpMethod = HttpMethod.Put;
-                       options.RelativePath = $"surveys/{id}/publish";
-                   });
-            return await ApiResult<SurveyDTO>.FromResponseAsync(response).ConfigureAwait(false);
+            return await _downstreamWebApi.CallWebApiForUserAsync<SurveyDTO>(_serviceName,
+                    options =>
+                    {
+                        options.HttpMethod = HttpMethod.Put;
+                        options.RelativePath = $"surveys/{id}/publish";
+                    });
         }
-        public async Task<ApiResult<SurveyDTO>> UnPublishSurveyAsync(int id)
+        public async Task<SurveyDTO> UnPublishSurveyAsync(int id)
         {
-            var response = await _downstreamWebApi.CallWebApiForUserAsync(_serviceName,
+            return await _downstreamWebApi.CallWebApiForUserAsync<SurveyDTO>(_serviceName,
                   options =>
                   {
                       options.HttpMethod = HttpMethod.Put;
                       options.RelativePath = $"surveys/{id}/unpublish";
                   });
-            return await ApiResult<SurveyDTO>.FromResponseAsync(response).ConfigureAwait(false);
         }
 
-        public async Task<ApiResult<ContributorsDTO>> GetSurveyContributorsAsync(int id)
+        public async Task<ContributorsDTO> GetSurveyContributorsAsync(int id)
         {
-            var response = await _downstreamWebApi.CallWebApiForUserAsync(_serviceName,
+            return await _downstreamWebApi.CallWebApiForUserAsync<ContributorsDTO>(_serviceName,
                 options =>
                 {
                     options.HttpMethod = HttpMethod.Get;
                     options.RelativePath = $"surveys/{id}/contributors";
                 });
-            return await ApiResult<ContributorsDTO>.FromResponseAsync(response).ConfigureAwait(false);
         }
 
-        public async Task<ApiResult> ProcessPendingContributorRequestsAsync()
+        public async Task ProcessPendingContributorRequestsAsync()
         {
-            var response = await _downstreamWebApi.CallWebApiForUserAsync(_serviceName,
+            await _downstreamWebApi.CallWebApiForUserAsync(_serviceName,
                   options =>
                   {
                       options.HttpMethod = HttpMethod.Post;
                       options.RelativePath = "/surveys/processpendingcontributorrequests";
                   });
-            return new ApiResult { Response = response };
         }
 
-        public async Task<ApiResult> AddContributorRequestAsync(ContributorRequest contributorRequest)
+        public async Task AddContributorRequestAsync(ContributorRequest contributorRequest)
         {
             string jsonContributor = JsonConvert.SerializeObject(contributorRequest);
             StringContent content = new StringContent(jsonContributor, Encoding.UTF8, "application/json");
-            var response = await _downstreamWebApi.CallWebApiForUserAsync(_serviceName,
-                    options =>
-                    {
-                        options.HttpMethod = HttpMethod.Post;
-                        options.RelativePath = $"/surveys/{contributorRequest.SurveyId}/contributorrequests";
-                    }, null, content);
-            return new ApiResult { Response = response };
+            await _downstreamWebApi.PostForUserAsync<object, ContributorRequest>(_serviceName, $"surveys/{contributorRequest.SurveyId}/contributorrequests", contributorRequest);
         }
     }
 }

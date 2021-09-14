@@ -1,10 +1,8 @@
 ﻿// Copyright (c) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-using System.Net;
 using System.Security.Claims;
 using System.Threading.Tasks;
-using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
@@ -14,12 +12,10 @@ using Tailspin.Surveys.Security.Policy;
 using Tailspin.Surveys.Web.Logging;
 using Tailspin.Surveys.Web.Models;
 using Tailspin.Surveys.Web.Services;
-using Microsoft.AspNetCore.Authentication.Cookies;
 using System;
 using System.Linq;
-using Tailspin.Surveys.Web.Security;
-using Microsoft.AspNetCore.Authentication;
 using Microsoft.Identity.Web;
+using System.Net.Http;
 
 namespace Tailspin.Surveys.Web.Controllers
 {
@@ -65,28 +61,15 @@ namespace Tailspin.Surveys.Web.Controllers
 
                 // The SurveyService.GetSurveysForUserAsync returns a UserSurveysDTO that has properties for Published, Own, and Contribute
                 var result = await _surveyService.GetSurveysForUserAsync(userId);
-                if (result.Succeeded)
-                {
-                    // If the user is in the creator role, the view shows a "Create Survey" button.
-                    var authResult = await _authorizationService.AuthorizeAsync(User, PolicyNames.RequireSurveyCreator);
-                    ViewBag.IsUserCreator = authResult?.Succeeded;
-                    _logger.GetSurveysForUserOperationSucceeded(actionName, user, issuerValue);
-                    return View(result.Item);
-                }
-
-                _logger.GetSurveysForUserOperationFailed(actionName, user, issuerValue, result.StatusCode);
-
-                if (result.StatusCode == (int) HttpStatusCode.Unauthorized)
-                {
-                    //this should happen if the bearer token validation fails. We wont sign the user out for 403 - since user may have access to some resources and not others
-                    return ReAuthenticateUser();
-                }
-
-                ViewBag.Message = "Unexpected Error";
+                // If the user is in the creator role, the view shows a "Create Survey" button.
+                var authResult = await _authorizationService.AuthorizeAsync(User, PolicyNames.RequireSurveyCreator);
+                ViewBag.IsUserCreator = authResult?.Succeeded;
+                _logger.GetSurveysForUserOperationSucceeded(actionName, user, issuerValue);
+                return View(result);
             }
-            catch (AuthenticationException)
+            catch (HttpRequestException requestEx) when ("Microsoft.Identity.Web".Equals(requestEx.Source) && "403 Forbidden".Equals(requestEx.Message?.Trim()))
             {
-                return ReAuthenticateUser();
+                return ForbidenAccessToTheSurvey();
             }
             catch
             {
@@ -105,26 +88,15 @@ namespace Tailspin.Surveys.Web.Controllers
             try
             {
                 var tenantId = User.GetSurveyTenantIdValue();
-                var result = await _surveyService.GetSurveysForTenantAsync(tenantId);
-
-                if (result.Succeeded)
-                {
-                    // If the user is an administrator, additional functionality is exposed. 
-                    var authResult = await _authorizationService.AuthorizeAsync(User, PolicyNames.RequireSurveyAdmin);
-                    ViewBag.IsUserAdmin = authResult?.Succeeded;
-                    return View(result.Item);
-                }
-
-                if (result.StatusCode == (int)HttpStatusCode.Unauthorized)
-                {
-                    return ReAuthenticateUser();
-                }
-
-                ViewBag.Message = "Unexpected Error";
+                var surveys = await _surveyService.GetSurveysForTenantAsync(tenantId);
+                // If the user is an administrator, additional functionality is exposed. 
+                var authResult = await _authorizationService.AuthorizeAsync(User, PolicyNames.RequireSurveyAdmin);
+                ViewBag.IsUserAdmin = authResult?.Succeeded;
+                return View(surveys);
             }
-            catch (AuthenticationException)
+            catch (HttpRequestException requestEx) when ("Microsoft.Identity.Web".Equals(requestEx.Source) && "403 Forbidden".Equals(requestEx.Message?.Trim()))
             {
-                return ReAuthenticateUser();
+                return ForbidenAccessToTheSurvey();
             }
             catch
             {
@@ -163,24 +135,7 @@ namespace Tailspin.Surveys.Web.Controllers
                 if (ModelState.IsValid)
                 {
                     var result = await _surveyService.CreateSurveyAsync(survey);
-                    if (result.Succeeded)
-                    {
-                        return RedirectToAction("Edit", new { id = result.Item.Id });
-                    }
-                    else
-                    {
-                        ModelState.AddModelError(string.Empty, $"Unable to create survey. (HTTP {result.StatusCode})");
-                        switch (result.StatusCode)
-                        {
-                            case (int)HttpStatusCode.Unauthorized:
-                                return ReAuthenticateUser();
-                            case (int)HttpStatusCode.Forbidden:
-                                ViewBag.Forbidden = true;
-                                return View(survey);
-                            default:
-                                return View(survey);
-                        }
-                    }
+                    return RedirectToAction("Edit", new { id = result.Id });
                 }
                 else
                 {
@@ -188,9 +143,9 @@ namespace Tailspin.Surveys.Web.Controllers
                     return View(survey);
                 }
             }
-            catch (AuthenticationException)
+            catch (HttpRequestException requestEx) when ("Microsoft.Identity.Web".Equals(requestEx.Source) && "403 Forbidden".Equals(requestEx.Message?.Trim()))
             {
-                return ReAuthenticateUser();
+                ForbidenAccessToTheSurvey(survey);
             }
             catch
             {
@@ -208,22 +163,18 @@ namespace Tailspin.Surveys.Web.Controllers
         {
             try
             {
-                var result = await _surveyService.GetSurveyAsync(id);
-                if (result.Succeeded)
-                {
-                    return View(result.Item);
-                }
-
-                var content = result.Response.Content.ReadAsStringAsync().ConfigureAwait(false).GetAwaiter().GetResult();
-
-                var errorResult = CheckStatusCode(result);
-                if (errorResult != null) return errorResult;
-
-                ViewBag.Message = "Unexpected Error";
+                var survey = await _surveyService.GetSurveyAsync(id);
+                return View(survey);
             }
-            catch (AuthenticationException)
+            catch (HttpRequestException requestEx) when ("Microsoft.Identity.Web".Equals(requestEx.Source) && "403 Forbidden".Equals(requestEx.Message?.Trim()))
             {
-                return ReAuthenticateUser();
+                return ForbidenAccessToTheSurvey();
+            }
+            catch (HttpRequestException requestEx) when ("Microsoft.Identity.Web".Equals(requestEx.Source) && "404 NotFound".Equals(requestEx.Message?.Trim()))
+            {
+                ModelState.AddModelError(string.Empty, "The survey can not be found");
+                ViewBag.Message = "The survey can not be found";
+                return View("~/Views/Shared/Error.cshtml");
             }
             catch
             {
@@ -241,26 +192,23 @@ namespace Tailspin.Surveys.Web.Controllers
         {
             try
             {
-                var result = await _surveyService.GetSurveyAsync(id);
-                if (result.Succeeded)
-                {
-                    if (result.Item.Published)
-                    {
-                        ViewBag.Message = "The survey is already published! You need to unpublish it in order to edit.";
-                        return View("~/Views/Shared/Error.cshtml");
-                    }
+                var survey = await _surveyService.GetSurveyAsync(id);
 
-                    return View(result.Item);
+                if (survey.Published)
+                {
+                    ViewBag.Message = "The survey is already published! You need to unpublish it in order to edit.";
+                    return View("~/Views/Shared/Error.cshtml");
                 }
 
-                var errorResult = CheckStatusCode(result);
-                if (errorResult != null) return errorResult;
-
-                ViewBag.Message = "Unexpected Error";
+                return View(survey);
             }
-            catch (AuthenticationException)
+            catch (HttpRequestException requestEx) when ("Microsoft.Identity.Web".Equals(requestEx.Source) && "403 Forbidden".Equals(requestEx.Message?.Trim()))
             {
-                return ReAuthenticateUser();
+                return ForbidenAccessToTheSurvey();
+            }
+            catch (HttpRequestException requestEx) when ("Microsoft.Identity.Web".Equals(requestEx.Source) && "404 NotFound".Equals(requestEx.Message?.Trim()))
+            {
+                return SurveyNotFound();
             }
             catch
             {
@@ -278,22 +226,18 @@ namespace Tailspin.Surveys.Web.Controllers
         {
             try
             {
-                var result = await _surveyService.GetSurveyAsync(id);
-                if (result.Succeeded)
-                {
-                    var model = result.Item;
-                    model.ExistingTitle = model.Title;
-                    return View(model);
-                }
-
-                var errorResult = CheckStatusCode(result);
-                if (errorResult != null) return errorResult;
-
-                ViewBag.Message = "Unexpected Error";
+                var survey = await _surveyService.GetSurveyAsync(id);
+                var model = survey;
+                model.ExistingTitle = model.Title;
+                return View(model);
             }
-            catch (AuthenticationException)
+            catch (HttpRequestException requestEx) when ("Microsoft.Identity.Web".Equals(requestEx.Source) && "403 Forbidden".Equals(requestEx.Message?.Trim()))
             {
-                return ReAuthenticateUser();
+                return ForbidenAccessToTheSurvey();
+            }
+            catch (HttpRequestException requestEx) when ("Microsoft.Identity.Web".Equals(requestEx.Source) && "404 NotFound".Equals(requestEx.Message?.Trim()))
+            {
+                return SurveyNotFound();
             }
             catch
             {
@@ -317,24 +261,7 @@ namespace Tailspin.Surveys.Web.Controllers
                 if (ModelState.IsValid)
                 {
                     var result = await _surveyService.UpdateSurveyAsync(model);
-                    if (result.Succeeded)
-                    {
-                        return RedirectToAction("Edit", new { id = model.Id });
-                    }
-                    else
-                    {
-                        ModelState.AddModelError(string.Empty, $"Unable to save changes. (HTTP {result.StatusCode})");
-                        switch (result.StatusCode)
-                        {
-                            case (int)HttpStatusCode.Unauthorized:
-                                return ReAuthenticateUser();
-                            case (int)HttpStatusCode.Forbidden:
-                                ViewBag.Forbidden = true;
-                                return View(model);
-                            default:
-                                return View(model);
-                        }
-                    }
+                    return RedirectToAction("Edit", new { id = model.Id });
                 }
                 else
                 {
@@ -342,9 +269,13 @@ namespace Tailspin.Surveys.Web.Controllers
                     return View("EditTitle", model);
                 }
             }
-            catch (AuthenticationException)
+            catch (HttpRequestException requestEx) when ("Microsoft.Identity.Web".Equals(requestEx.Source) && "403 Forbidden".Equals(requestEx.Message?.Trim()))
             {
-                return ReAuthenticateUser();
+                ForbidenAccessToTheSurvey(model);
+            }
+            catch (HttpRequestException requestEx) when ("Microsoft.Identity.Web".Equals(requestEx.Source) && "404 NotFound".Equals(requestEx.Message?.Trim()))
+            {
+                return SurveyNotFound();
             }
             catch
             {
@@ -362,20 +293,16 @@ namespace Tailspin.Surveys.Web.Controllers
         {
             try
             {
-                var result = await _surveyService.GetSurveyAsync(id);
-                if (result.Succeeded)
-                {
-                    return View(result.Item);
-                }
-
-                var errorResult = CheckStatusCode(result);
-                if (errorResult != null) return errorResult;
-
-                ViewBag.Message = "Unexpected Error";
+                var survey = await _surveyService.GetSurveyAsync(id);
+                return View(survey);
             }
-            catch (AuthenticationException)
+            catch (HttpRequestException requestEx) when ("Microsoft.Identity.Web".Equals(requestEx.Source) && "403 Forbidden".Equals(requestEx.Message?.Trim()))
             {
-                return ReAuthenticateUser();
+                return ForbidenAccessToTheSurvey();
+            }
+            catch (HttpRequestException requestEx) when ("Microsoft.Identity.Web".Equals(requestEx.Source) && "404 NotFound".Equals(requestEx.Message?.Trim()))
+            {
+                return SurveyNotFound();
             }
             catch
             {
@@ -391,43 +318,22 @@ namespace Tailspin.Surveys.Web.Controllers
         /// <returns>A view that either shows validation errors or a redirection to the Survey Edit experience</returns>
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Delete([Bind("Id")]SurveyDTO model)
+        public async Task<IActionResult> Delete([Bind("Id")] SurveyDTO model)
         {
             try
             {
                 var surveyResult = await _surveyService.GetSurveyAsync(model.Id);
-                if (surveyResult.Succeeded)
-                {
-                    var result = await _surveyService.DeleteSurveyAsync(model.Id);
-                    if (result.Succeeded)
-                    {
-                        ViewBag.Message = "The following survey has been deleted.";
-                        return View("DeleteResult", result.Item);
-                    }
-                    else
-                    {
-                        ModelState.AddModelError(string.Empty, $"Unable to delete survey. (HTTP {result.StatusCode})");
-                        switch (result.StatusCode)
-                        {
-                            case (int)HttpStatusCode.Unauthorized:
-                                return ReAuthenticateUser();
-                            case (int)HttpStatusCode.Forbidden:
-                                ViewBag.Forbidden = true;
-                                break;
-                        }
-                        return View(surveyResult.Item);
-                    }
-                }
-                if (surveyResult.StatusCode == (int)HttpStatusCode.NotFound)
-                {
-                    ModelState.AddModelError(string.Empty, $"The survey can not be found, It may have already been deleted");
-                    ViewBag.Message = $"The survey can not be found, It may have already been deleted";
-                    return View("~/Views/Shared/Error.cshtml");
-                }
+                var result = await _surveyService.DeleteSurveyAsync(model.Id);
+                ViewBag.Message = "The following survey has been deleted.";
+                return View("DeleteResult", result);
             }
-            catch (AuthenticationException)
+            catch (HttpRequestException requestEx) when ("Microsoft.Identity.Web".Equals(requestEx.Source) && "403 Forbidden".Equals(requestEx.Message?.Trim()))
             {
-                return ReAuthenticateUser();
+                return ForbidenAccessToTheSurvey(model);
+            }
+            catch (HttpRequestException requestEx) when ("Microsoft.Identity.Web".Equals(requestEx.Source) && "404 NotFound".Equals(requestEx.Message?.Trim()))
+            {
+                return SurveyNotFound();
             }
             catch
             {
@@ -446,19 +352,15 @@ namespace Tailspin.Surveys.Web.Controllers
             try
             {
                 var result = await _surveyService.GetSurveyContributorsAsync(id);
-                if (result.Succeeded)
-                {
-                    return View(result.Item);
-                }
-
-                var errorResult = CheckStatusCode(result);
-                if (errorResult != null) return errorResult;
-
-                ViewBag.Message = "Unexpected Error";
+                return View(result);
             }
-            catch (AuthenticationException)
+            catch (HttpRequestException requestEx) when ("Microsoft.Identity.Web".Equals(requestEx.Source) && "403 Forbidden".Equals(requestEx.Message?.Trim()))
             {
-                return ReAuthenticateUser();
+                return ForbidenAccessToTheSurvey();
+            }
+            catch (HttpRequestException requestEx) when ("Microsoft.Identity.Web".Equals(requestEx.Source) && "404 NotFound".Equals(requestEx.Message?.Trim()))
+            {
+                return SurveyNotFound();
             }
             catch
             {
@@ -476,21 +378,17 @@ namespace Tailspin.Surveys.Web.Controllers
         {
             try
             {
-                var result = await _surveyService.GetSurveyAsync(id);
-                if (result.Succeeded)
-                {
-                    ViewBag.SurveyId = id;
-                    return View();
-                }
-
-                var errorResult = CheckStatusCode(result);
-                if (errorResult != null) return errorResult;
-
-                ViewBag.Message = "Unexpected Error";
+                var survey = await _surveyService.GetSurveyAsync(id);
+                ViewBag.SurveyId = id;
+                return View();
             }
-            catch (AuthenticationException)
+            catch (HttpRequestException requestEx) when ("Microsoft.Identity.Web".Equals(requestEx.Source) && "403 Forbidden".Equals(requestEx.Message?.Trim()))
             {
-                return ReAuthenticateUser();
+                return ForbidenAccessToTheSurvey();
+            }
+            catch (HttpRequestException requestEx) when ("Microsoft.Identity.Web".Equals(requestEx.Source) && "404 NotFound".Equals(requestEx.Message?.Trim()))
+            {
+                return SurveyNotFound();
             }
             catch
             {
@@ -516,23 +414,20 @@ namespace Tailspin.Surveys.Web.Controllers
                 }
 
                 var existingContributors = await _surveyService.GetSurveyContributorsAsync(contributorRequestViewModel.SurveyId);
-                if (existingContributors.Succeeded)
+                if (existingContributors.Contributors.Any(item =>
+                         String.Equals(item.Email, contributorRequestViewModel.EmailAddress, StringComparison.OrdinalIgnoreCase)))
                 {
-                    if (existingContributors.Item.Contributors.Any(item =>
-                        String.Equals(item.Email, contributorRequestViewModel.EmailAddress, StringComparison.OrdinalIgnoreCase)))
-                    {
-                        ViewBag.SurveyId = contributorRequestViewModel.SurveyId;
-                        ViewBag.Message = contributorRequestViewModel.EmailAddress + " is already a contributor";
-                        return View();
-                    }
+                    ViewBag.SurveyId = contributorRequestViewModel.SurveyId;
+                    ViewBag.Message = contributorRequestViewModel.EmailAddress + " is already a contributor";
+                    return View();
+                }
 
-                    if (existingContributors.Item.Requests.Any(item =>
-                        String.Equals(item.EmailAddress, contributorRequestViewModel.EmailAddress, StringComparison.OrdinalIgnoreCase)))
-                    {
-                        ViewBag.SurveyId = contributorRequestViewModel.SurveyId;
-                        ViewBag.Message = contributorRequestViewModel.EmailAddress + " has already been requested before";
-                        return View();
-                    }
+                if (existingContributors.Requests.Any(item =>
+                    String.Equals(item.EmailAddress, contributorRequestViewModel.EmailAddress, StringComparison.OrdinalIgnoreCase)))
+                {
+                    ViewBag.SurveyId = contributorRequestViewModel.SurveyId;
+                    ViewBag.Message = contributorRequestViewModel.EmailAddress + " has already been requested before";
+                    return View();
                 }
 
                 await _surveyService.AddContributorRequestAsync(new ContributorRequest
@@ -544,19 +439,15 @@ namespace Tailspin.Surveys.Web.Controllers
                 ViewBag.Message = $"Contribution Requested for {contributorRequestViewModel.EmailAddress}";
                 ViewBag.SurveyId = contributorRequestViewModel.SurveyId;
                 var result = await _surveyService.GetSurveyContributorsAsync(contributorRequestViewModel.SurveyId);
-                if (result.Succeeded)
-                {
-                    return View("Contributors", result.Item);
-                }
-                else
-                {
-                    ViewBag.Message = "Unexpected Error";
-                    return View("~/Views/Shared/Error.cshtml");
-                }
+                return View("Contributors", result);
             }
-            catch (AuthenticationException)
+            catch (HttpRequestException requestEx) when ("Microsoft.Identity.Web".Equals(requestEx.Source) && "403 Forbidden".Equals(requestEx.Message?.Trim()))
             {
-                return ReAuthenticateUser();
+                return ForbidenAccessToTheSurvey();
+            }
+            catch (HttpRequestException requestEx) when ("Microsoft.Identity.Web".Equals(requestEx.Source) && "404 NotFound".Equals(requestEx.Message?.Trim()))
+            {
+                return SurveyNotFound();
             }
             catch
             {
@@ -574,28 +465,24 @@ namespace Tailspin.Surveys.Web.Controllers
         {
             try
             {
-                var result = await _surveyService.GetSurveyAsync(id);
-                if (result.Succeeded)
+                var survey = await _surveyService.GetSurveyAsync(id);
+                if (survey.Published)
                 {
-                    if (result.Item.Published)
-                    {
-                        ModelState.AddModelError(string.Empty, $"The survey is already published");
-                        return View("PublishResult", result.Item);
-                    }
-                    else
-                    {
-                        return View(result.Item);
-                    }
+                    ModelState.AddModelError(string.Empty, $"The survey is already published");
+                    return View("PublishResult", survey);
                 }
-
-                var errorResult = CheckStatusCode(result);
-                if (errorResult != null) return errorResult;
-
-                ViewBag.Message = "Unexpected Error";
+                else
+                {
+                    return View(survey);
+                }
             }
-            catch (AuthenticationException)
+            catch (HttpRequestException requestEx) when ("Microsoft.Identity.Web".Equals(requestEx.Source) && "403 Forbidden".Equals(requestEx.Message?.Trim()))
             {
-                return ReAuthenticateUser();
+                return ForbidenAccessToTheSurvey();
+            }
+            catch (HttpRequestException requestEx) when ("Microsoft.Identity.Web".Equals(requestEx.Source) && "404 NotFound".Equals(requestEx.Message?.Trim()))
+            {
+                return SurveyNotFound();
             }
             catch
             {
@@ -611,45 +498,30 @@ namespace Tailspin.Surveys.Web.Controllers
         /// <returns>A confirmation page showing that the <see cref="Survey"/> was published, or errors</returns>
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Publish([Bind("Id")]SurveyDTO model)
+        public async Task<IActionResult> Publish([Bind("Id")] SurveyDTO model)
         {
             try
             {
                 var surveyResult = await _surveyService.GetSurveyAsync(model.Id);
-                if (surveyResult.Succeeded)
+                if (surveyResult.Published)
                 {
-                    if (surveyResult.Item.Published)
-                    {
-                        ModelState.AddModelError(string.Empty, $"The survey is already published");
-                        return View("PublishResult", surveyResult.Item);
-                    }
-                    else
-                    {
-                        var publishResult = await _surveyService.PublishSurveyAsync(model.Id);
-                        if (publishResult.Succeeded)
-                        {
-                            ViewBag.Message = "The following survey has been published.";
-                            return View("PublishResult", publishResult.Item);
-                        }
-                        else
-                        {
-                            ModelState.AddModelError(string.Empty, $"Unable to publish survey. (HTTP {publishResult.StatusCode})");
-                            switch (publishResult.StatusCode)
-                            {
-                                case (int)HttpStatusCode.Unauthorized:
-                                    return ReAuthenticateUser();
-                                case (int)HttpStatusCode.Forbidden:
-                                    ViewBag.Forbidden = true;
-                                    break;
-                            }
-                            return View(surveyResult.Item);
-                        }
-                    }
+                    ModelState.AddModelError(string.Empty, $"The survey is already published");
+                    return View("PublishResult", surveyResult);
+                }
+                else
+                {
+                    var publishResult = await _surveyService.PublishSurveyAsync(model.Id);
+                    ViewBag.Message = "The following survey has been published.";
+                    return View("PublishResult", publishResult);
                 }
             }
-            catch (AuthenticationException)
+            catch (HttpRequestException requestEx) when ("Microsoft.Identity.Web".Equals(requestEx.Source) && "403 Forbidden".Equals(requestEx.Message?.Trim()))
             {
-                return ReAuthenticateUser();
+                return ForbidenAccessToTheSurvey();
+            }
+            catch (HttpRequestException requestEx) when ("Microsoft.Identity.Web".Equals(requestEx.Source) && "404 NotFound".Equals(requestEx.Message?.Trim()))
+            {
+                return SurveyNotFound();
             }
             catch
             {
@@ -667,57 +539,30 @@ namespace Tailspin.Surveys.Web.Controllers
         {
             try
             {
-                var result = await _surveyService.GetSurveyAsync(id);
-                if (result.Succeeded)
+                var survey = await _surveyService.GetSurveyAsync(id);
+                if (!survey.Published)
                 {
-                    if (!result.Item.Published)
-                    {
-                        ModelState.AddModelError(string.Empty, $"The survey is already unpublished");
-                        return View("UnPublishResult", result.Item);
-                    }
-                    else
-                    {
-                        return View(result.Item);
-                    }
+                    ModelState.AddModelError(string.Empty, $"The survey is already unpublished");
+                    return View("UnPublishResult", survey);
                 }
-
-                var errorResult = CheckStatusCode(result);
-                if (errorResult != null) return errorResult;
-
-                ViewBag.Message = "Unexpected Error";
+                else
+                {
+                    return View(survey);
+                }
             }
-            catch (AuthenticationException)
+            catch (HttpRequestException requestEx) when ("Microsoft.Identity.Web".Equals(requestEx.Source) && "403 Forbidden".Equals(requestEx.Message?.Trim()))
             {
-                return ReAuthenticateUser();
+                return ForbidenAccessToTheSurvey();
+            }
+            catch (HttpRequestException requestEx) when ("Microsoft.Identity.Web".Equals(requestEx.Source) && "404 NotFound".Equals(requestEx.Message?.Trim()))
+            {
+                return SurveyNotFound();
             }
             catch
             {
                 ViewBag.Message = "Unexpected Error";
             }
             return View("~/Views/Shared/Error.cshtml");
-        }
-
-        private IActionResult CheckStatusCode(ApiResult result)
-        {
-            if (result.StatusCode == (int)HttpStatusCode.Unauthorized)
-            {
-                return ReAuthenticateUser();
-            }
-
-            if (result.StatusCode == (int)HttpStatusCode.Forbidden)
-            {
-                // Redirects user to Forbidden page
-                return new ChallengeResult(CookieAuthenticationDefaults.AuthenticationScheme);
-            }
-
-            if (result.StatusCode == (int)HttpStatusCode.NotFound)
-            {
-                ModelState.AddModelError(string.Empty, "The survey can not be found");
-                ViewBag.Message = "The survey can not be found";
-                return View("~/Views/Shared/Error.cshtml");
-            }
-
-            return null;
         }
 
         /// <summary>
@@ -727,45 +572,30 @@ namespace Tailspin.Surveys.Web.Controllers
         /// <returns>A confirmation page showing that the <see cref="Survey"/> was unpublished, or errors</returns>
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> UnPublish([Bind("Id")]SurveyDTO model)
+        public async Task<IActionResult> UnPublish([Bind("Id")] SurveyDTO model)
         {
             try
             {
                 var surveyResult = await _surveyService.GetSurveyAsync(model.Id);
-                if (surveyResult.Succeeded)
+                if (!surveyResult.Published)
                 {
-                    if (!surveyResult.Item.Published)
-                    {
-                        ModelState.AddModelError(string.Empty, $"The survey is already unpublished");
-                        return View("UnPublishResult", surveyResult.Item);
-                    }
-                    else
-                    {
-                        var unpublishResult = await _surveyService.UnPublishSurveyAsync(model.Id);
-                        if (unpublishResult.Succeeded)
-                        {
-                            ViewBag.Message = "The following survey has been unpublished.";
-                            return View("UnPublishResult", unpublishResult.Item);
-                        }
-                        else
-                        {
-                            ModelState.AddModelError(string.Empty, $"Cannot unpublish survey. (HTTP {unpublishResult.StatusCode})");
-                            switch (unpublishResult.StatusCode)
-                            {
-                                case (int)HttpStatusCode.Unauthorized:
-                                    return ReAuthenticateUser();
-                                case (int)HttpStatusCode.Forbidden:
-                                    ViewBag.Forbidden = true;
-                                    break;
-                            }
-                            return View(surveyResult.Item);
-                        }
-                    }
+                    ModelState.AddModelError(string.Empty, $"The survey is already unpublished");
+                    return View("UnPublishResult", surveyResult);
+                }
+                else
+                {
+                    var unpublishResult = await _surveyService.UnPublishSurveyAsync(model.Id);
+                    ViewBag.Message = "The following survey has been unpublished.";
+                    return View("UnPublishResult", unpublishResult);
                 }
             }
-            catch (AuthenticationException)
+            catch (HttpRequestException requestEx) when ("Microsoft.Identity.Web".Equals(requestEx.Source) && "403 Forbidden".Equals(requestEx.Message?.Trim()))
             {
-                return ReAuthenticateUser();
+                return ForbidenAccessToTheSurvey();
+            }
+            catch (HttpRequestException requestEx) when ("Microsoft.Identity.Web".Equals(requestEx.Source) && "404 NotFound".Equals(requestEx.Message?.Trim()))
+            {
+                return SurveyNotFound();
             }
             catch
             {
@@ -774,14 +604,24 @@ namespace Tailspin.Surveys.Web.Controllers
             return View("~/Views/Shared/Error.cshtml");
         }
 
-        private IActionResult ReAuthenticateUser()
+        private IActionResult ForbidenAccessToTheSurvey()
         {
-            return new ChallengeResult(OpenIdConnectDefaults.AuthenticationScheme,
-                new AuthenticationProperties
-                {
-                    IsPersistent = true,
-                    RedirectUri = Url.Action("SignInCallback", "Account")
-                });
+            ModelState.AddModelError(string.Empty, "Forbidden Access to the survey");
+            ViewBag.Message = "Forbidden Access to the survey";
+            return View("~/Views/Shared/Error.cshtml");
+        }
+
+        private IActionResult ForbidenAccessToTheSurvey(SurveyDTO survey)
+        {
+            ViewBag.Forbidden = true;
+            return View(survey);
+        }
+
+        private IActionResult SurveyNotFound()
+        {
+            ModelState.AddModelError(string.Empty, "The survey can not be found");
+            ViewBag.Message = "The survey can not be found";
+            return View("~/Views/Shared/Error.cshtml");
         }
     }
 }

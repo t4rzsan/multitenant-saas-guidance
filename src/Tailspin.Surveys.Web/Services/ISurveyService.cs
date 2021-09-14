@@ -16,17 +16,17 @@ namespace Tailspin.Surveys.Web.Services
     /// </summary>
     public interface ISurveyService
     {
-        Task<ApiResult<SurveyDTO>> GetSurveyAsync(int id);
-        Task<ApiResult<UserSurveysDTO>> GetSurveysForUserAsync(int userId);
-        Task<ApiResult<TenantSurveysDTO>> GetSurveysForTenantAsync(int tenantId);
-        Task<ApiResult<SurveyDTO>> CreateSurveyAsync(SurveyDTO survey);
-        Task<ApiResult<SurveyDTO>> UpdateSurveyAsync(SurveyDTO survey);
-        Task<ApiResult<SurveyDTO>> DeleteSurveyAsync(int id);
-        Task<ApiResult<ContributorsDTO>> GetSurveyContributorsAsync(int id);
+        Task<SurveyDTO> GetSurveyAsync(int id);
+        Task<UserSurveysDTO> GetSurveysForUserAsync(int userId);
+        Task<TenantSurveysDTO> GetSurveysForTenantAsync(int tenantId);
+        Task<SurveyDTO> CreateSurveyAsync(SurveyDTO survey);
+        Task<SurveyDTO> UpdateSurveyAsync(SurveyDTO survey);
+        Task<SurveyDTO> DeleteSurveyAsync(int id);
+        Task<ContributorsDTO> GetSurveyContributorsAsync(int id);
         Task<ApiResult<IEnumerable<SurveyDTO>>> GetPublishedSurveysAsync();
-        Task<ApiResult<SurveyDTO>> PublishSurveyAsync(int id);
-        Task<ApiResult<SurveyDTO>> UnPublishSurveyAsync(int id);
-        Task<ApiResult> ProcessPendingContributorRequestsAsync();
-        Task<ApiResult> AddContributorRequestAsync(ContributorRequest contributorRequest);
+        Task<SurveyDTO> PublishSurveyAsync(int id);
+        Task<SurveyDTO> UnPublishSurveyAsync(int id);
+        Task ProcessPendingContributorRequestsAsync();
+        Task AddContributorRequestAsync(ContributorRequest contributorRequest);
     }
 }

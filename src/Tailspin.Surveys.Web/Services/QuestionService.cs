@@ -2,15 +2,11 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System.Net.Http;
-using System.Text;
 using System.Threading.Tasks;
-using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;
 using Microsoft.Identity.Web;
-using Newtonsoft.Json;
 using Tailspin.Surveys.Data.DTOs;
 using Tailspin.Surveys.Web.Configuration;
-using Tailspin.Surveys.Web.Models;
 
 namespace Tailspin.Surveys.Web.Services
 {
@@ -20,7 +16,7 @@ namespace Tailspin.Surveys.Web.Services
     /// (see Azure API Apps) 
     /// Note the MVC6 version of Swashbuckler is called "Ahoy" and is still in beta: https://github.com/domaindrivendev/Ahoy
     /// 
-    /// All methods set the user's access token in the Bearer authorization header 
+    /// All methods set the user's access token in the Bearer authorization header. It is done authomatically by Microsoft.Identity.Web library. 
     /// to allow the WebAPI to run on behalf of the signed in user.
     /// </summary>
     public class QuestionService : IQuestionService
@@ -34,52 +30,34 @@ namespace Tailspin.Surveys.Web.Services
             _serviceName = configOptions.Value.SurveyApi.Name;
         }
 
-        public async Task<ApiResult<QuestionDTO>> GetQuestionAsync(int id)
+        public async Task<QuestionDTO> GetQuestionAsync(int id)
         {
-            var response = await downstreamWebApi.CallWebApiForUserAsync(_serviceName,
+            return await downstreamWebApi.CallWebApiForUserAsync<QuestionDTO>(_serviceName,
                      options =>
                     {
                         options.HttpMethod = HttpMethod.Get;
                         options.RelativePath = $"questions/{id}";
                     });
-            return await ApiResult<QuestionDTO>.FromResponseAsync(response).ConfigureAwait(false);
         }
 
-        public async Task<ApiResult<QuestionDTO>> CreateQuestionAsync(QuestionDTO question)
+        public async Task<QuestionDTO> CreateQuestionAsync(QuestionDTO question)
         {
-            string jsonQuestion = JsonConvert.SerializeObject(question);
-            StringContent content = new StringContent(jsonQuestion, Encoding.UTF8, "application/json");
-            var response = await downstreamWebApi.CallWebApiForUserAsync(_serviceName,
-                    options =>
-                    {
-                        options.HttpMethod = HttpMethod.Post;
-                        options.RelativePath = $"surveys/{question.SurveyId}/questions";
-                    }, null, content);
-            return await ApiResult<QuestionDTO>.FromResponseAsync(response).ConfigureAwait(false);
+            return await downstreamWebApi.PostForUserAsync<QuestionDTO, QuestionDTO>(_serviceName, $"surveys/{question.SurveyId}/questions", question);
         }
 
-        public async Task<ApiResult<QuestionDTO>> UpdateQuestionAsync(QuestionDTO question)
+        public async Task<QuestionDTO> UpdateQuestionAsync(QuestionDTO question)
         {
-            string jsonQuestion = JsonConvert.SerializeObject(question);
-            StringContent content = new StringContent(jsonQuestion, Encoding.UTF8, "application/json");
-            var response = await downstreamWebApi.CallWebApiForUserAsync(_serviceName,
-                  options =>
-                  {
-                      options.HttpMethod = HttpMethod.Put;
-                      options.RelativePath = $"questions/{question.Id}";
-                  }, null, content);
-            return await ApiResult<QuestionDTO>.FromResponseAsync(response).ConfigureAwait(false);
+            return await downstreamWebApi.PutForUserAsync<QuestionDTO, QuestionDTO>(_serviceName, $"questions/{question.Id}", question);
         }
 
-        public async Task<ApiResult> DeleteQuestionAsync(int id)
+        public async Task DeleteQuestionAsync(int id)
         {
-            var response = await downstreamWebApi.CallWebApiForUserAsync(_serviceName,
+            await downstreamWebApi.CallWebApiForUserAsync(_serviceName,
                   options =>
                   {
                       options.HttpMethod = HttpMethod.Delete;
                       options.RelativePath = $"questions/{id}";
                   });
-            return new ApiResult { Response = response };
         }
     }
 }

@@ -3,7 +3,6 @@
 
 using System.Threading.Tasks;
 using Tailspin.Surveys.Data.DTOs;
-using Tailspin.Surveys.Web.Models;
 
 namespace Tailspin.Surveys.Web.Services
 {
@@ -12,9 +11,9 @@ namespace Tailspin.Surveys.Web.Services
     /// </summary>
     public interface IQuestionService
     {
-        Task<ApiResult<QuestionDTO>> GetQuestionAsync(int id);
-        Task<ApiResult<QuestionDTO>> CreateQuestionAsync(QuestionDTO question);
-        Task<ApiResult<QuestionDTO>> UpdateQuestionAsync(QuestionDTO question);
-        Task<ApiResult> DeleteQuestionAsync(int id);
+        Task<QuestionDTO> GetQuestionAsync(int id);
+        Task<QuestionDTO> CreateQuestionAsync(QuestionDTO question);
+        Task<QuestionDTO> UpdateQuestionAsync(QuestionDTO question);
+        Task DeleteQuestionAsync(int id);
     }
 }
