@@ -10,12 +10,11 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using Microsoft.IdentityModel.Tokens;
+using Microsoft.Identity.Web;
 using Tailspin.Surveys.Data.DataModels;
 using Tailspin.Surveys.Data.DataStore;
 using Tailspin.Surveys.Security.Policy;
 using AppConfiguration = Tailspin.Surveys.WebAPI.Configuration;
-using Constants = Tailspin.Surveys.Common.Constants;
 
 namespace Tailspin.Surveys.WebAPI
 {
@@ -83,13 +82,14 @@ namespace Tailspin.Surveys.WebAPI
             services.AddAuthorization();
 
             services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-                .AddJwtBearer(options =>
-            {
-                options.Audience = configOptions.AzureAd.WebApiResourceId;
-                options.Authority = Constants.AuthEndpointPrefix;
-                options.TokenValidationParameters = new TokenValidationParameters { ValidateIssuer = false };
-                options.Events = new SurveysJwtBearerEvents(loggerFactory.CreateLogger<SurveysJwtBearerEvents>());
-            });
+                    .AddMicrosoftIdentityWebApi(jtwOptions =>
+                           {
+                               jtwOptions.Events = new SurveysJwtBearerEvents(loggerFactory.CreateLogger<SurveysJwtBearerEvents>()); 
+                           },
+                           msIdentityOptions => {
+                               Configuration.GetSection("AzureAd").Bind(msIdentityOptions);
+                           });
+
             services.AddDatabaseDeveloperPageExceptionFilter();
         }
 

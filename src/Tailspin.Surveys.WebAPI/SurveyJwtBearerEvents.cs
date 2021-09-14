@@ -50,7 +50,15 @@ namespace Tailspin.Surveys.WebAPI
             var tenantManager = context.HttpContext.RequestServices.GetService<TenantManager>();
             var userManager = context.HttpContext.RequestServices.GetService<UserManager>();
             var issuerValue = principal.GetIssuerValue();
-           
+            var tenant = await tenantManager.FindByIssuerValueAsync(issuerValue);
+
+            // the caller comes from an admin-consented, recorded issuer
+            if (tenant == null)
+            {
+                _logger.TokenValidationFailed(principal.GetObjectIdentifierValue(), issuerValue);
+                // the caller was not from a trusted issuer - throw to block the authentication flow
+                throw new SecurityTokenValidationException();
+            }
             var identity = principal.Identities.First();
 
             // Adding new Claim for survey_userid
