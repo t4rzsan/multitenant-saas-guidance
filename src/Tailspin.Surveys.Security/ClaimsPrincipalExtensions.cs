@@ -32,7 +32,7 @@ namespace System.Security.Claims
             {
                 return issuerValue;
             }
-            
+
             //Workaround to deal with missing "iss" claim. We search for the ObjectId claim instead and return the value of Issuer property of that Claim
             var objectIdClaim = principal.Claims.FirstOrDefault(c => c.Type == AzureADClaimTypes.ObjectId);
             if (throwIfNotFound && string.IsNullOrWhiteSpace(objectIdClaim?.Issuer))

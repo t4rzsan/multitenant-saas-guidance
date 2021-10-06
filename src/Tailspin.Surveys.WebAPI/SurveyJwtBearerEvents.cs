@@ -59,7 +59,6 @@ namespace Tailspin.Surveys.WebAPI
                 // the caller was not from a trusted issuer - throw to block the authentication flow
                 throw new SecurityTokenValidationException();
             }
-
             var identity = principal.Identities.First();
 
             // Adding new Claim for survey_userid

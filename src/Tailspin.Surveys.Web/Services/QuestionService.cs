@@ -2,13 +2,11 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System.Net.Http;
-using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.AspNetCore.Http;
-using Tailspin.Surveys.Common;
+using Microsoft.Extensions.Options;
+using Microsoft.Identity.Web;
 using Tailspin.Surveys.Data.DTOs;
-using Tailspin.Surveys.Web.Models;
-using Tailspin.Surveys.Web.Security;
+using Tailspin.Surveys.Web.Configuration;
 
 namespace Tailspin.Surveys.Web.Services
 {
@@ -18,58 +16,48 @@ namespace Tailspin.Surveys.Web.Services
     /// (see Azure API Apps) 
     /// Note the MVC6 version of Swashbuckler is called "Ahoy" and is still in beta: https://github.com/domaindrivendev/Ahoy
     /// 
-    /// All methods set the user's access token in the Bearer authorization header 
+    /// All methods set the user's access token in the Bearer authorization header. It is done authomatically by Microsoft.Identity.Web library. 
     /// to allow the WebAPI to run on behalf of the signed in user.
     /// </summary>
-    public class QuestionService: IQuestionService
+    public class QuestionService : IQuestionService
     {
-        private readonly IHttpContextAccessor _httpContextAccessor;
-        private readonly ISurveysTokenService _surveysTokenService;
-        private readonly HttpClient _httpClient;
-        private readonly CancellationToken _cancellationToken;
-        
-        public QuestionService(HttpClientService factory, IHttpContextAccessor httpContextAccessor, ISurveysTokenService surveysTokenService)
+        private readonly IDownstreamWebApi downstreamWebApi;
+        private readonly string _serviceName;
+
+        public QuestionService(IDownstreamWebApi downstreamWebApi, IOptions<ConfigurationOptions> configOptions)
         {
-            _httpContextAccessor = httpContextAccessor;
-            _httpClient = factory.GetHttpClient();
-            _surveysTokenService = surveysTokenService;
-            _cancellationToken = httpContextAccessor?.HttpContext?.RequestAborted ?? CancellationToken.None;
+            this.downstreamWebApi = downstreamWebApi;
+            _serviceName = configOptions.Value.SurveyApi.Name;
         }
 
-        public async Task<ApiResult<QuestionDTO>> GetQuestionAsync(int id)
+        public async Task<QuestionDTO> GetQuestionAsync(int id)
         {
-            var path = $"/questions/{id}";
-            var response = await _httpClient.SendRequestWithBearerTokenAsync(HttpMethod.Get, path, null,
-                        await _surveysTokenService.GetTokenForWebApiAsync(_httpContextAccessor.HttpContext.User)
-                                .ConfigureAwait(false), _cancellationToken);
-            return await ApiResult<QuestionDTO>.FromResponseAsync(response).ConfigureAwait(false);
+            return await downstreamWebApi.CallWebApiForUserAsync<QuestionDTO>(_serviceName,
+                     options =>
+                    {
+                        options.HttpMethod = HttpMethod.Get;
+                        options.RelativePath = $"questions/{id}";
+                    });
         }
 
-        public async Task<ApiResult<QuestionDTO>> CreateQuestionAsync(QuestionDTO question)
+        public async Task<QuestionDTO> CreateQuestionAsync(QuestionDTO question)
         {
-            var path = $"/surveys/{question.SurveyId}/questions";
-            var response = await _httpClient.SendRequestWithBearerTokenAsync(HttpMethod.Post, path, question,
-                        await _surveysTokenService.GetTokenForWebApiAsync(_httpContextAccessor.HttpContext.User)
-                                .ConfigureAwait(false), _cancellationToken);
-            return await ApiResult<QuestionDTO>.FromResponseAsync(response).ConfigureAwait(false);
+            return await downstreamWebApi.PostForUserAsync<QuestionDTO, QuestionDTO>(_serviceName, $"surveys/{question.SurveyId}/questions", question);
         }
 
-        public async Task<ApiResult<QuestionDTO>> UpdateQuestionAsync(QuestionDTO question)
+        public async Task<QuestionDTO> UpdateQuestionAsync(QuestionDTO question)
         {
-            var path = $"/questions/{question.Id}";
-            var response = await _httpClient.SendRequestWithBearerTokenAsync(HttpMethod.Put, path, question,
-                        await _surveysTokenService.GetTokenForWebApiAsync(_httpContextAccessor.HttpContext.User)
-                                .ConfigureAwait(false), _cancellationToken);
-            return await ApiResult<QuestionDTO>.FromResponseAsync(response).ConfigureAwait(false);
+            return await downstreamWebApi.PutForUserAsync<QuestionDTO, QuestionDTO>(_serviceName, $"questions/{question.Id}", question);
         }
 
-        public async Task<ApiResult> DeleteQuestionAsync(int id)
+        public async Task DeleteQuestionAsync(int id)
         {
-            var path = $"/questions/{id}";
-            var response = await _httpClient.SendRequestWithBearerTokenAsync(HttpMethod.Delete, path, null,
-                        await _surveysTokenService.GetTokenForWebApiAsync(_httpContextAccessor.HttpContext.User)
-                                .ConfigureAwait(false), _cancellationToken);
-            return new ApiResult { Response = response };
+            await downstreamWebApi.CallWebApiForUserAsync(_serviceName,
+                  options =>
+                  {
+                      options.HttpMethod = HttpMethod.Delete;
+                      options.RelativePath = $"questions/{id}";
+                  });
         }
     }
 }

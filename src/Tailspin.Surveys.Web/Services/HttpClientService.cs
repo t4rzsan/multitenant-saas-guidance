@@ -38,7 +38,7 @@ namespace Tailspin.Surveys.Web.Services
             _httpClient = new HttpClient(httpHandler);
 
             // Set the BaseAddress of the HttpClient if WebApiUrl is found in configuration.
-            var baseAddress = options?.Value?.AppSettings.WebApiUrl;
+            var baseAddress = options?.Value?.SurveyApi.BaseUrl;
             if(!string.IsNullOrEmpty(baseAddress))
             {
                 _httpClient.BaseAddress = new Uri(baseAddress);

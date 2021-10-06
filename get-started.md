@@ -28,11 +28,11 @@ In this step, you'll create an Azure AD directory for Tailspin.
 
 3. Select the **Identity** category, and then select the **Azure Active Directory** resource type.
 
-    ![Screenshot of create resource](./images/running-the-app/create-aad-resource.png)
+   ![Screenshot of create resource](./images/running-the-app/create-aad-resource.png)
 
 4. Enter `Tailspin` for the organization name, and a domain name. The domain name will have the form `xxxx.onmicrosoft.com` and must be globally unique.
 
-    ![Screenshot of create tenant](./images/running-the-app/create-tenant.png)
+   ![Screenshot of create tenant](./images/running-the-app/create-tenant.png)
 
 5. Select the **Create** button to create the new Tenant.
 
@@ -65,21 +65,21 @@ To complete the end-to-end scenario, you'll need a second Azure AD directory to 
 
 3. In the **Set the App ID URI** edit box, enter `https://<domain>/surveys.webapi`, where `<domain>` is the domain name of the directory. For example: `https://tailspin.onmicrosoft.com/surveys.webapi`
 
-    ![Screenshot for registering the Web API](./images/running-the-app/register-webapi-appuri.png)
+   ![Screenshot for registering the Web API](./images/running-the-app/register-webapi-appuri.png)
 
 4. Select **Save**.
 
 5. Select **Add a scope** to define an API access scope that will later be used to authorize clients. Enter the following information:
 
-    - **Scope name**: `surveys.access`
-    - **who can consent**: `admins and users`
-    - **Admin consent display name**: `Web API access`
-    - **Admin consent description**: `Allows access to the Tailspin Web API`
-    - **User consent display name**: `Web API access`
-    - **User consent description**: `Allows access to the Tailspin Web API`
-    - **State**: `enabled`  
+   - **Scope name**: `surveys.access`
+   - **who can consent**: `admins and users`
+   - **Admin consent display name**: `Web API access`
+   - **Admin consent description**: `Allows access to the Tailspin Web API`
+   - **User consent display name**: `Web API access`
+   - **User consent description**: `Allows access to the Tailspin Web API`
+   - **State**: `enabled`
 
-        ![Screenshot adding a Web API scope](./images/running-the-app/webapi-add-scope.png)
+     ![Screenshot adding a Web API scope](./images/running-the-app/webapi-add-scope.png)
 
 6. Click **Add scope**
 
@@ -89,12 +89,12 @@ To complete the end-to-end scenario, you'll need a second Azure AD directory to 
 
 2. Enter the following information:
 
-    - **Name**: `Surveys`
-    - **Supported Account Types**: `Accounts in any organizational directory (Any Azure AD directory - Multitenant)`
-    - **Application type**: `Web`
-    - **Redirect URI**: `https://localhost:44300/`
+   - **Name**: `Surveys`
+   - **Supported Account Types**: `Accounts in any organizational directory (Any Azure AD directory - Multitenant)`
+   - **Application type**: `Web`
+   - **Redirect URI**: `https://localhost:44300/`
 
-    Notice that the sign-on URL has a different port number from the `Surveys.WebAPI` app in the previous step.
+   Notice that the sign-on URL has a different port number from the `Surveys.WebAPI` app in the previous step.
 
 3. Select **Register**.
 
@@ -120,7 +120,7 @@ To complete the end-to-end scenario, you'll need a second Azure AD directory to 
 
 ### Configure client secrets
 
-1. Select **Certificates and Secrets** 
+1. Select **Certificates and Secrets**
 
 2. Under **Client secrets**, select **New client secret**.
 
@@ -132,7 +132,7 @@ To complete the end-to-end scenario, you'll need a second Azure AD directory to 
 
 6. Before you navigate away from this blade, copy the value of the secret.
 
-    > The value of the secret will not be visible again after you navigate away from the blade.
+   > The value of the secret will not be visible again after you navigate away from the blade.
 
 ### Set API permissions
 
@@ -146,7 +146,7 @@ To complete the end-to-end scenario, you'll need a second Azure AD directory to 
 
 5. Under **Select Permissions**, select the **survey.access** scope.
 
-    ![Screenshot for adding scope permissions](./images/running-the-app/request-api-permission.png)
+   ![Screenshot for adding scope permissions](./images/running-the-app/request-api-permission.png)
 
 6. Select **Add permissions**
 
@@ -171,7 +171,7 @@ To complete the end-to-end scenario, you'll need a second Azure AD directory to 
      "allowedMemberTypes": ["User"],
      "description": "Administrators can manage the surveys in their tenant",
      "displayName": "SurveyAdmin",
-     "id": "<Generate a new GUID>",  
+     "id": "<Generate a new GUID>",
      "isEnabled": true,
      "value": "SurveyAdmin"
    }
@@ -185,7 +185,13 @@ To complete the end-to-end scenario, you'll need a second Azure AD directory to 
 
    This setting adds the Surveys app to the list of clients authorized to call the web API.
 
-5. Select **Save**.
+5. Set `accessTokenAcceptedVersion` to 2, we are going to accept only access token v2.0
+
+   ```json
+   "accessTokenAcceptedVersion": 2,
+   ```
+
+6. Select **Save**.
 
 Now repeat the same steps for the Surveys app, except do not add an entry for `knownClientApplications`. Use the same role definitions, but generate new GUIDs for the IDs.
 
@@ -217,41 +223,51 @@ For more information about creating a Redis cache, see [Quickstart: Use Azure Ca
 
 3. In the secrets.json file, paste in the following:
 
-    ```json
-    {
-      "AzureAd": {
-        "ClientId": "<Surveys application ID>",
-        "ClientSecret": "<Surveys app client secret>",
-        "PostLogoutRedirectUri": "https://localhost:44300/",
-        "WebApiResourceId": "<Surveys.WebAPI app ID URI>"
-      },
-      "Redis": {
-        "Configuration": "<Redis DNS name>.redis.cache.windows.net,password=<Redis primary key>,ssl=true"
-      }
-    }
-    ```
+   ```json
+   {
+     "AzureAd": {
+       "Instance": "https://login.microsoftonline.com/",
+       "Domain": "<domain>.onmicrosoft.com",
+       "TenantId": "common",
+       "ClientId": "<Surveys application ID>",
+       "ClientSecret": "<Surveys app client secret>",
+       "CallbackPath": "/signin-oidc",
+       "SignedOutCallbackPath ": "/signout-callback-oidc",
+       "PostLogoutRedirectUri": "https://localhost:44300/",
+       "WebApiResourceId": "<Surveys.WebAPI app ID URI>"
+     },
+     "Redis": {
+       "Configuration": "<Redis DNS name>.redis.cache.windows.net,password=<Redis primary key>,ssl=true"
+     }
+   }
+   ```
 
-    Replace the items shown in angle brackets, as follows:
+   Replace the items shown in angle brackets, as follows:
 
-    - `AzureAd:ClientId`: The application ID of the Surveys app.
-    - `AzureAd:ClientSecret`: The key that you generated when you registered the Surveys application in Azure AD.
-    - `AzureAd:WebApiResourceId`: The App ID URI that you specified when you created the Surveys.WebAPI application in Azure AD. It should have the form `https://<directory>.onmicrosoft.com/surveys.webapi`
-    - `Redis:Configuration`: Build this string from the DNS name of the Redis cache and the primary access key. For example, "tailspin.redis.cache.windows.net,password=2h5tBxxx,ssl=true".
+   - `AzureAd:Domain`: The AD primary domain.
+   - `AzureAd:ClientId`: The application ID of the Surveys app.
+   - `AzureAd:ClientSecret`: The key that you generated when you registered the Surveys application in Azure AD.
+   - `AzureAd:WebApiResourceId`: The App ID URI that you specified when you created the Surveys.WebAPI application in Azure AD. It should have the form `https://<directory>.onmicrosoft.com/surveys.webapi`
+   - `Redis:Configuration`: Build this string from the DNS name of the Redis cache and the primary access key. For example, "tailspin.redis.cache.windows.net,password=2h5tBxxx,ssl=true".
 
 4. Save the updated secrets.json file.
 
 5. Repeat these steps for the Tailspin.Surveys.WebAPI project, but paste the following into secrets.json. Replace the items in angle brackets, as before.
 
-    ```json
-    {
-      "AzureAd": {
-        "WebApiResourceId": "<Surveys.WebAPI app ID URI>"
-      },
-      "Redis": {
-        "Configuration": "<Redis DNS name>.redis.cache.windows.net,password=<Redis primary key>,ssl=true"
-      }
-    }
-    ```
+   ```json
+   {
+     "AzureAd": {
+       "WebApiResourceId": "<Surveys.WebAPI app ID URI>",
+       "Instance": "https://login.microsoftonline.com/",
+       "Domain": "<domain>.onmicrosoft.com",
+       "TenantId": "common",
+       "ClientId": "<Surveys application ID>",
+     },
+     "Redis": {
+       "Configuration": "<Redis DNS name>.redis.cache.windows.net,password=<Redis primary key>,ssl=true"
+     }
+   }
+   ```
 
 ## Initialize the database
 
@@ -263,9 +279,9 @@ In this step, you will use Entity Framework 7 to create a local SQL database, us
 
 3. Run the following command:
 
-    ```bat
-    dotnet ef database update --startup-project ..\Tailspin.Surveys.Web
-    ```
+   ```bat
+   dotnet ef database update --startup-project ..\Tailspin.Surveys.Web
+   ```
 
 ## Run the application
 
@@ -307,15 +323,15 @@ When a tenant signs up, an AD admin for the tenant must assign application roles
 
 5. If you have Azure AD Premium, click **Users and groups**. Otherwise, click **Users**. (Assigning a role to a group requires Azure AD Premium.)
 
-6.  Select one or more users and click **Select**.
+6. Select one or more users and click **Select**.
 
-    ![Select user or group](./images/running-the-app/select-user-or-group.png)
+   ![Select user or group](./images/running-the-app/select-user-or-group.png)
 
-7.  Select the role and click **Select**.
+7. Select the role and click **Select**.
 
-    ![Select user or group](./images/running-the-app/select-role.png)
+   ![Select user or group](./images/running-the-app/select-role.png)
 
-8.  Click **Assign**.
+8. Click **Assign**.
 
 Repeat the same steps to assign roles for the Survey.WebAPI application.
 
@@ -336,6 +352,5 @@ As a security best practice, you should never store application secrets such as 
 [aad-appregistrations]: https://portal.azure.com/#blade/Microsoft_AAD_IAM/ActiveDirectoryMenuBlade/RegisteredApps
 [aad-enterprise-applications]: https://portal.azure.com/#blade/Microsoft_AAD_IAM/StartboardApplicationsMenuBlade/AllApps
 [createhub]: https://ms.portal.azure.com/#create/hub
-[VS2017]: https://www.visualstudio.com/vs/
+[vs2017]: https://www.visualstudio.com/vs/
 [appregistrations]: https://ms.portal.azure.com/#blade/Microsoft_AAD_RegisteredApps/ApplicationsListBlade
-

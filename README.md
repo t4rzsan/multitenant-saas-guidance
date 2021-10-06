@@ -1,8 +1,5 @@
 # Identity Management for Multitenant Applications in Microsoft Azure
 
-| :warning: | This reference implementation uses Azure AD Authentication Library for .NET (ADAL.NET) and [hasn't been migrated to MSAL.NET](https://docs.microsoft.com/azure/active-directory/develop/msal-net-migration). |
-|-----------|:--------------------------|
-
 This sample shows how to manage user identities in a multitenant application on Microsoft Azure, using Azure Active Directory for authentication.
 
 The project consists of:
