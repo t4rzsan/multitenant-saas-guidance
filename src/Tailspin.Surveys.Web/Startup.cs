@@ -83,11 +83,11 @@ namespace Tailspin.Surveys.Web
                .AddDownstreamWebApi(configOptions.SurveyApi.Name, Configuration.GetSection("SurveyApi"))
                .AddDistributedTokenCaches();
 
-            services.AddStackExchangeRedisCache(options =>
-            {
-                options.Configuration = configOptions.Redis.Configuration;
-                options.InstanceName = "TokenCache";
-            });
+            //services.AddStackExchangeRedisCache(options =>
+            //{
+            //    options.Configuration = configOptions.Redis.Configuration;
+            //    options.InstanceName = "TokenCache";
+            //});
 
             // Add Entity Framework services to the services container.
             services.AddEntityFrameworkSqlServer()
