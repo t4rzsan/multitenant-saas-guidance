@@ -126,10 +126,18 @@ namespace Tailspin.Surveys.Web.Controllers
         /// <param name="survey">The <see cref="SurveyDTO"/> instance that contains the fields necessary to create a <see cref="Survey"/></param>
         /// <returns>A view that either shows validation errors or a redirection to the Survey Edit experience</returns>
         [HttpPost]
-        [Authorize(Policy = PolicyNames.RequireSurveyCreator)]
+        //[Authorize(Policy = PolicyNames.RequireSurveyCreator)]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(SurveyDTO survey)
         {
+            // The AuthorizeAttribute does not work for some reason, so we check the policy manually.
+            var authResult = await _authorizationService.AuthorizeAsync(User, PolicyNames.RequireSurveyCreator);
+
+            if (authResult?.Succeeded != true)
+            {
+                return ForbidenAccessToTheSurvey();
+            }
+
             try
             {
                 if (ModelState.IsValid)
